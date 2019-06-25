@@ -1,0 +1,32 @@
+#!/bin/bash
+
+WD="$(pwd)"
+FN="$(realpath ${1})"
+FLEN="$(wc -l "${1}" | cut -d" " -f1)"
+PARNUM="${2:-4}"
+
+download_files(){
+
+xargs -a "$1" -I {} -P"$2" forcing_download {}
+
+}
+
+if [ $# -lt 1 ]; then echo "Please provide file"; exit 1; fi
+
+if [ $(basename "`pwd`") == "forcing_downloads" ];then
+	--
+else
+	mkdir -p forcing_downloads
+	cd forcing_downloads
+fi
+download_files "$FN" "$PARNUM"
+
+# check if downloaded all files
+dwn_num=$(ls | wc -l | sed "s/  *//" | cut -d" " -f1)
+while [ $FLEN -ne $dwn_num ];do
+	download_files "$FN" <(grep -v -f <(ls) "$FN") "$PARNUM"
+	dwn_num=$(ls | wc -l | sed "s/  *//" | cut -d" " -f1)
+done
+
+echo "All files downloaded";
+cd "$WD";
