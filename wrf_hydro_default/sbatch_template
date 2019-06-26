@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH -J nwm_test_run # job name
+#SBATCH -n 8 # number of tasks ( in this case this is also cores)
+#SBATCH --mem 5G # how much memoiry is each core going to use
+#SBATCH -p main
+#SBATCH --qos debug  # queue options: main long debug
+#SBATCH -e /home/aaraney/si/err.log
+#SBATCH -o /home/aaraney/si/out.log
+#SBATCH --mail-user aaraney@crimson.ua.edu
+
+srun mpirun ./wrf_hydro.exe  
