@@ -39,14 +39,28 @@ def para_editor(File_name, para_name , editing_mode = 'Scl', scale = 1.1):
     if editing_mode == 'Scl':
         ds[para_name][:] *= scale  # Modify the parameter
 
-        # !!!Be advised: should better define the cs_area, currently, it is a xarray dataframe and the variable name is not correct...but it works!
+        # !!!Be advised: should better define the cs_area, currently, it is a xarray dataframe and the variable name is
+        # not correct...but it works!
         if para_name == 'ChSlp':
             #  Following 2 equations are from Blackburn et al.
-            cs_area = 0.75*((ds['TopWdth'][:]/2.44)**(1.0 / 0.34))**0.53  # cs_area is not a varaible in dataframe but
-                                                                          # is necessary to be calculated in order to
-                                                                          # to be able to calculate BtmWdth
+            cs_area = 0.75*((ds['TopWdth'][:]/2.44)**(1.0 / 0.34))**0.53  # cs_area is not a varaible in NWM dataframe
+                                                                          # but is necessary to be calculated in order
+                                                                          # to be able to calculate BtmWdth to
 
+            # Be careful of neg values being root squared: happens when dramatically decrease ChSlp
             ds['BtmWdth'][:] = (ds['TopWdth'][:]**2-(4.0*cs_area)/ds['ChSlp'][:])**0.5
+
+
+        if para_name == 'BtmWdth':
+            #  Following 2 equations are from Blackburn et al.
+            cs_area = 0.75 * ((ds['TopWdth'][:] / 2.44) ** (1.0 / 0.34)) ** 0.53
+            # cs_area is not a varaible in NWM dataframe
+            # but is necessary to be calculated in order
+            # to be able to calculate BtmWdth to
+
+            ds['ChSlp'][:] = 4.0 * cs_area / (ds['TopWdth'][:] ** 2 - ds['BtmWdth'][:] ** 2)
+
+
 
     # !!!Be advised: Currently StOr is NOT complete
     if editing_mode == 'StOr':
@@ -66,11 +80,13 @@ def copier(xr_dataframe, outputpath):
 ###                                     Main                                  ###
 #################################################################################
 
-Para = 'ChSlp'  # parameter to be edited
+Para = 'BtmWdth'  # parameter to be edited
 
 # A simple parameter perturber
 scale_list = []
-for i in np.arange(0.9, 1.6, 0.1):
+for i in np.arange(0.4, 1.66667, 0.2):  # Do not exceed 1.66667, as by keeping TopWdth constant and multiplying BtmWdth
+                                    # by 1.66667, it will get bigger than TopWdth leading to a reverse trapezoidal which
+                                    # is not what we want...
     scale_list.append(i)
 
 # Input netcdf file for study area
@@ -86,7 +102,7 @@ for counter, scale in enumerate(scale_list):
     new2_rt = para_editor(FileName, Para , editing_mode='Scl', scale=scale)
 
     # Print some of the parameters after perturb
-    print('First value for ' + Para + ': ', new2_rt[Para][0].values)
+    print('First value for ' + 'ChSlp' + ': ', new2_rt['ChSlp'][0].values)
     print('First value for ' + 'BtmWdth' + ': ', new2_rt['BtmWdth'][0].values)
     print('First value for ' + 'TopWdth' + ': ', new2_rt['TopWdth'][0].values)
     print('First value for ' + 'CrossSectionArea' + ': ', 0.75*((new2_rt['TopWdth'][0].values/2.44)**(1.0 / 0.34))**0.53)
