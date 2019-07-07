@@ -15,3 +15,4 @@ class Job:
         self.local_mount_point = local_mount_point
         self.changed_domain_file = changed_domain_file
         self.mpi_host_file = mpi_host_file
+
