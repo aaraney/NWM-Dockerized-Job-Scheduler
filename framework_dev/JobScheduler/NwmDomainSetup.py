@@ -1,26 +1,55 @@
 #!/usr/local/bin/python3
 
 from os import link, makedirs, remove
-from os.path import join, realpath, basename
+from os.path import join, realpath, basename, dirname
 from glob import glob
 
 
-class NwmDomainSetup:
+class NwmDomainSetup(object):
 
-    def __init__(self, master_dir, slave_dir, alt_domain_list=[], nwm_src='/nwm/Run/'):
+    def __init__(self, master_dir, slave_dir, alt_domain_list=[], nwm_src='/nwm/Run/', setup_model=True):
         self.master_dir = realpath(master_dir)
+        self._master_parent_dir = dirname(self.master_dir)
         self.slave_dir = slave_dir
         self.nwm_src = realpath(nwm_src)
         self.alt_domain_list = list(map(lambda x: realpath(x), alt_domain_list) if len(alt_domain_list) else [])
 
-        self.setupModel()
+        self.setupModel() if setup_model else None
+
+    def __str__(self):
+        return 'slave mnt: {}\nmaster mnt: {}\nalt domain list: {}\nnwm src: {}' \
+            .format(
+            self.slave_dir, self.master_dir,
+            self.alt_domain_list, self.nwm_src
+        )
+
+    @classmethod
+    def fromJob(cls, job, setup_model=True):
+        master_dir = job.parent_mnt_point
+        slave_dir = job.mnt_point
+        alt_domain_list = job.alt_domain_list
+        return cls(master_dir, slave_dir, alt_domain_list, setup_model=setup_model)
+
+    @property
+    def master_parent_dir(self):
+        return self._master_parent_dir
 
     def cleanUp(self):
         '''
         Remove forcings and restarts
         Aggregate files to better location
         '''
-    pass
+        pass
+
+    def createSlave(self):
+        '''
+        Creates slave dir in parent dir of the master
+        i.e.
+        if master is /master, slave will be created
+        at /slave
+        '''
+        # undecided if I want to make this function or not
+        pass
 
     def __link(self, dest_dir, *src_files):
         '''
@@ -99,9 +128,15 @@ class NwmDomainSetup:
 
 
 if __name__=='__main__':
+    from JobScheduler.Job import Job
     master_path = '/Users/austinraney/Box Sync/si/sandbox/framework_test/master_domain'
     slave_path = '/Users/austinraney/Box Sync/si/sandbox/framework_test/slave_domain'
     nwm_path = '/Users/austinraney/Box Sync/si/local/ms_domain1'
     domain_files = ['/Users/austinraney/Box Sync/si/sandbox/docker_testing/framework_test/master_domain/DOMAIN/geo_em.d01.nc']
 
-    nwm = NwmDomainSetup(master_path, slave_path)
+    j = Job(slave_path, master_path, domain_files)
+    # nwm = NwmDomainSetup(slave_path, master_path, domain_files)
+    nwm_job = NwmDomainSetup.fromJob(j, setup_model=False)
+    print(nwm_job)
+
+

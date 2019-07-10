@@ -1,12 +1,18 @@
 #!/usr/local/bin/python3
 
-import os
+from os.path import join, dirname
 import docker
 from JobScheduler.Job import Job
+from JobScheduler.NwmDomainSetup import NwmDomainSetup
 from queue import Queue
 import glob
 from functools import reduce
 import operator
+from random import randint
+
+# Problem list:
+# 1. There are no job mnt point collision tactics in place thus far
+#    this should be implemented in fromList function. AR 7/10/19
 
 
 class Scheduler:
@@ -18,6 +24,12 @@ class Scheduler:
             self.docker_client = docker_client
 
         self.checkHeartBeat()
+
+        # Each run of scheduler is assigned
+        # an id. This id is assigned to each
+        # job of the scheduler in it's
+        # directory filename
+        self.schedule_id = randint(0,999)
 
         self.alt_domain_file_list = []
 
@@ -32,6 +44,30 @@ class Scheduler:
         # Max cps is the max number of cpus
         # running at any given time
         self._MAX_CPUS = 1
+
+    @classmethod
+    def fromList(cls, master_domain, alt_domain_list):
+        '''
+        Fill jobs queue from list of file names
+
+        The alt domain list files will attempt to have
+        their full path mapped to the list, however it
+        is *best practice* to provide a list of absolute
+        paths. Code for this in Job.py
+
+        NOTE:
+            Currently model runs are only supported that
+            have a single changed domain files per run.
+        '''
+        scheduler = cls()
+        for i,file in enumerate(alt_domain_list):
+            # There are no job mnt point
+            # collision tactics in place
+            # thus far
+            mnt_point = join(dirname(master_domain), 'job-{}-session-{}'.format(i, scheduler.schedule_id))
+            job = Job(mnt_point, master_domain, file)
+            scheduler.addToQueue(job)
+        scheduler.addToQueue()
 
     @property
     def MAX_JOBS(self):
@@ -88,7 +124,30 @@ class Scheduler:
         }
         return self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True, remove=True, volumes=volumes)
 
+    def addToQueue(self, job):
+        '''
+        Add job to queue
+        '''
+        self.jobQ.put(job)
+
+    def setupJob(self, job):
+        '''
+        Create slave dir and link files for job
+        '''
+        domain = NwmDomainSetup.fromJob(job)
+        return domain
+
+    def fillJobQueue(self):
+        '''
+        Populate the queue with jobs to be run.
+        Slave directories for each job are not created
+        until they are pushed out of the queue
+        '''
+
+       pass
+
     def startJobs(self):
+
         while self.jobQ.qsize() != 0:
             container_list = self.docker_client.containers.list()
             if len(container_list) < self.MAX_JOBS:
