@@ -1,5 +1,0 @@
-"grid"	"imin"	"imax"	"jmin"	"jmax"	"index_start"
-"hyd_sn"	12289	12336	5445	5548	1
-"hyd_ns"	12289	12336	9813	9916	1
-"geo_sn"	3073	3084	1362	1387	1
-"geo_ns"	3073	3084	2454	2479	1
