@@ -1,14 +1,16 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 from os.path import join, dirname
-import docker
-from JobScheduler.Job import Job
-from JobScheduler.NwmDomainSetup import NwmDomainSetup
 import queue
 import glob
 from functools import reduce
 import operator
 from random import randint
+import docker
+
+# Local imports
+from job import Job
+from nwmdomainsetup import NwmDomainSetup
 
 # Problem list:
 # 1. There are no job mnt point collision tactics in place thus far
