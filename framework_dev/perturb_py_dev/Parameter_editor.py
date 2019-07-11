@@ -1,5 +1,6 @@
 import xarray as xr
 import numpy as np
+from SALib.sample import latin
 
 
 # --------------------------------------------------------------------------------------------------
@@ -19,6 +20,7 @@ def para_editor_evenly_scaler(ds, para_name, scale):
     '''(dateset, parameter name to be modified, scale)'''
     # This function scales the chosen parameter and the dependent parameters if any.
 
+    # For now, don't play with 'TopWdth'
     valid_para_to_edit = {'ChSlp', 'n', 'nCC', 'TopWdth', 'TopWdthCC', 'BtmWdth'}
     if para_name not in valid_para_to_edit:
         raise ValueError("results: parameter_name to be edited must be one of %r." % valid_para_to_edit)
@@ -53,6 +55,8 @@ def para_editor_evenly_scaler(ds, para_name, scale):
 def para_editor_evenly_scaler_multi_para(InputFilename, outputpath, para_names, scales_list):
     '''(Input file to be edited, outputpath, list of parameters to be edited, list of scales corresponding to the parameters)'''
     # This function scales multiple parameters and the dependent parameters if any.
+
+    # TODO: For Iman: Raise values error when len(para_names) != len(scales_list)
     ds = xr.open_dataset(InputFilename)  # Open the netcdf file
 
     ds1 = ds  # Copy the dataset
@@ -62,6 +66,7 @@ def para_editor_evenly_scaler_multi_para(InputFilename, outputpath, para_names, 
     for i, para_name in enumerate(para_names):
         ds1 = para_editor_evenly_scaler(ds1, para_name, scales_list[i])
 
+    # TODO: do sth like this: f = open(os.path.join(reportfile_directory, "PerfMetrReport.csv"), "w")
     # Create the outputfile name
     for i, para_name in enumerate(para_names):
         outputpath += '_p' + str(i) + '_' + para_name + '_sc_' + str(scales_list[i])
@@ -70,18 +75,19 @@ def para_editor_evenly_scaler_multi_para(InputFilename, outputpath, para_names, 
     # Create the edited netcdf file
     ds1.to_netcdf(outputpath)
 
-    # #  Read th# e edited netcdf file
+    # #  Read the edited netcdf file
     # ds1.close()
     # del ds1
     # ds1 = xr.open_dataset(outputpath)  # Open the netcdf file
 
-    return ds1
+    return ds1, outputpath  # Austing said change to outputpath
 
 
 def para_editor_streamorder_based_scaler(ds, para_name, streamorder_list, scale_list):
     '''(dateset, parameter name to be modified, scaler list for each streamorder)'''
     # This function scales the chosen parameter and the dependent parameters if any.
 
+    # TODO: For Iman: Raise values error when len(para_names) != len(scales_list)
     valid_para_to_edit = {'ChSlp', 'n', 'nCC', 'TopWdth', 'TopWdthCC', 'BtmWdth'}
     if para_name not in valid_para_to_edit:
         raise ValueError("results: parameter_name to be edited must be one of %r." % valid_para_to_edit)
@@ -118,49 +124,70 @@ Filename = "C:/Users/Iman/Desktop/RouteLink_NWMv2.0_20190517_cheyenne_pull_subse
 outputpath = "C:/Users/Iman/Desktop/RouteLink_NWMv2.0_20190517_cheyenne_pull_subset"
 
 
-# --------------------------------- Example of Evenly Scaler----------------------------------------
+# --------------------------------- Example of Evenly Scaler ---------------------------------------
 params_list = ['BtmWdth', 'n', 'nCC']  # parameters to be edited
-scales_list_of_lists = [[1.1, 1.2, 1.5], [1.1, 1.2, 4], [1.1, 1.2, 5], [1.1, 1.2, 6], [1.1, 1.2, 10], [1.1, 1.2, 20]]
+
+# Define the model inputs for SALib.sample.latin
+problem = {
+    'num_vars': len(params_list),
+    'names': params_list,
+    'bounds': [[0.001, 1.5],
+               [0.5, 1.5],
+               [0.5, 1.5]]
+}
+
+# Generate the parameter space based on latin hypercube sampling
+scales_list_of_lists = (np.round(latin.sample(problem, 6), len(params_list))).tolist()
+# scales_list_of_lists = [[1.1, 1.2, 1.5], [1.1, 1.2, 4], [1.1, 1.2, 5],
+#                         [1.1, 1.2, 6], [1.1, 1.2, 10], [1.1, 1.2, 20]] # Arbitrarily, chosen
 
 for scales_list in scales_list_of_lists:
-    ds1 = para_editor_evenly_scaler_multi_para(Filename, outputpath, params_list, scales_list)
+    ds1, outputpath_final = para_editor_evenly_scaler_multi_para(Filename, outputpath, params_list, scales_list)
 
-    print'\n**********************'
+    print('\n**********************')
     # print('First value for ' + 'ChSlp' + ': ', ds1['ChSlp'][0].values)
     # print('First value for ' + 'BtmWdth' + ': ', ds1['BtmWdth'][0].values)
     # print('First value for ' + 'TopWdth' + ': ', ds1['TopWdth'][0].values)
     # print('First value for ' + 'CrossSectionArea' + ': ', 0.75 * ((ds1['TopWdth'][0].values / 2.44) ** (1.0 / 0.34)) ** 0.53)
     # print('First value for ' + 'n' + ': ', ds1['n'][0].values)
     print('First value for ' + 'nCC' + ': ', ds1['nCC'][0].values)
-    print ds1.Edits_made.split('||')
+    print(ds1.Edits_made.split('||'))
 
 
 # --------------------------Example of Scaler based on Streamorder----------------------------------
-para_name = 'BtmWdth'
-ds = xr.open_dataset(Filename)
-
-# Create list of streamorders present in the domain file
-Streamorder_list = []
-for i in range(min(ds.order), max(ds.order)+1):
-    Streamorder_list.append(i)
-
-# Arbitrarily, create list of scalers corrsoponding to each streamorder
-scaler_list = []
-if max(ds.order) == 5:
-    scaler_list = [0.65, 0.75, 0.90, 1.1, 1.25]
-elif max(ds.order) == 4:
-    scaler_list = [0.75, 0.9, 1.1, 1.25]
-
-ds.attrs['Edits_made'] = ''  # Add Global Attribute to track the changes made on parameters
-ds1 = para_editor_streamorder_based_scaler(ds, para_name, Streamorder_list, scaler_list)
-
-# Create the outputfile name
-for i, Streamorder in enumerate(Streamorder_list):
-    outputpath += '_p_' + para_name + '_Streamorder_' + str(Streamorder) + '_sc_' + str(scaler_list[i])
-outputpath += '.nc'
-
-# Create the edited netcdf file
-ds1.to_netcdf(outputpath)
+# para_name = 'BtmWdth'
+# ds = xr.open_dataset(Filename)
+#
+# # Create list of streamorders present in the domain file
+# Streamorder_list = []
+# for i in range(int(min(ds.order)), int(max(ds.order))+1):
+#     Streamorder_list.append(i)
+#
+# # Arbitrarily, create list of scalers corrsoponding to each streamorder
+# # scaler_list = []
+# # if max(ds.order) == 5:
+# #     scaler_list = [0.65, 0.75, 0.90, 1.1, 1.25]
+# # elif max(ds.order) == 4:
+# #     scaler_list = [0.75, 0.9, 1.1, 1.25]
+# #
+# # if (max(ds.order) % 2) == 0:
+# #     a = 1/(((len(list))+1)/2.0)
+# # else:
+# #     a =
+#
+# a = 1/(((len(Streamorder_list))+1)/2.0)
+# scaler_list = [round(i * a, 3) for i in Streamorder_list]
+#
+# ds.attrs['Edits_made'] = ''  # Add Global Attribute to track the changes made on parameters
+# ds1 = para_editor_streamorder_based_scaler(ds, para_name, Streamorder_list, scaler_list)
+#
+# # Create the outputfile name
+# for i, Streamorder in enumerate(Streamorder_list):
+#     outputpath += '_p_' + para_name + '_Streamorder_' + str(Streamorder) + '_sc_' + str(scaler_list[i])
+# outputpath += '.nc'
+#
+# # Create the edited netcdf file
+# ds1.to_netcdf(outputpath)
 
 
 
