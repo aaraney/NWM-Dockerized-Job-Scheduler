@@ -4,7 +4,7 @@ from os.path import join, dirname
 import docker
 from JobScheduler.Job import Job
 from JobScheduler.NwmDomainSetup import NwmDomainSetup
-from queue import Queue
+import queue
 import glob
 from functools import reduce
 import operator
@@ -13,6 +13,7 @@ from random import randint
 # Problem list:
 # 1. There are no job mnt point collision tactics in place thus far
 #    this should be implemented in fromList function. AR 7/10/19
+# 2. CPU's and MAX_JOBS not well implemented at the moment
 
 
 class Scheduler:
@@ -34,12 +35,13 @@ class Scheduler:
         self.alt_domain_file_list = []
 
         self.runningContainerDict = {}
-        self.jobQ = Queue()
+        self._jobQ = queue.deque()
 
         self._image_tag = None
         # Max jobs is the max number of jobs
         # running at any given time
-        self._MAX_JOBS = 1
+        # TODO: Find information from system to inform this
+        self._MAX_JOBS = 2
 
         # Max cps is the max number of cpus
         # running at any given time
@@ -64,10 +66,20 @@ class Scheduler:
             # There are no job mnt point
             # collision tactics in place
             # thus far
+            # TODO: Add file collision avoidance tactics
             mnt_point = join(dirname(master_domain), 'job-{}-session-{}'.format(i, scheduler.schedule_id))
             job = Job(mnt_point, master_domain, file)
-            scheduler.addToQueue(job)
-        scheduler.addToQueue()
+            scheduler.enqueue(job)
+        return scheduler
+
+    def __str__(self):
+        # Embarrassing implementation
+        # TODO: Make the readable
+        return str(list(map(lambda x: print('{}\n'.format(x)), list(self._jobQ))))
+
+    @property
+    def jobQ(self):
+        return self._jobQ
 
     @property
     def MAX_JOBS(self):
@@ -122,20 +134,22 @@ class Scheduler:
             slave : {'bind': '/slave',
                      'mode': 'rw'}
         }
-        return self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True, remove=True, volumes=volumes)
+        # TODO: Make sure that this works
+        slave.container_id = self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True, remove=True, volumes=volumes)
+        return slave
 
-    def addToQueue(self, job):
+    def enqueue(self, job):
         '''
         Add job to queue
         '''
-        self.jobQ.put(job)
+        self._jobQ.append(job)
 
     def setupJob(self, job):
         '''
         Create slave dir and link files for job
         '''
-        domain = NwmDomainSetup.fromJob(job)
-        return domain
+        slave = NwmDomainSetup.fromJob(job)
+        return slave
 
     def fillJobQueue(self):
         '''
@@ -143,28 +157,38 @@ class Scheduler:
         Slave directories for each job are not created
         until they are pushed out of the queue
         '''
+        pass
 
-       pass
 
     def startJobs(self):
+        # Check for number of running containers if greater than allotted
+        if len(self.docker_client.containers.list()) >= self.MAX_JOBS:
+            print("System already at set MAX_JOBS quota.")
+            return None
 
-        while self.jobQ.qsize() != 0:
-            container_list = self.docker_client.containers.list()
-            if len(container_list) < self.MAX_JOBS:
-                self.runJob()
+        while len(self._jobQ) != 0:
+            if len(self.docker_client.containers.list()) <= self.MAX_JOBS:
+                slave = self._jobQ.pop()
+                slave = self.setupJob(slave)
+                # This code needs to be modernized
+                self.runJob(self.image_tag, slave, '0-3')
 
-
-
-            self.docker_client.containers.run(self.image_tag, entrypoint='something')
-            client.containers.run('alpine', 'echo hello world')
-
-        job = Job()
-
-
+                # Implement database for metadata here
 
 
 if __name__=='__main__':
-    s = Scheduler()
-    slave = '/Users/austinraney/Box Sync/si/sandbox/framework_test/slave_domain'
-    print(s.runJob('aaraney/nwm-run-env', slave, '0-3'))
+    master_domain = "/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN_DEFAULT"
+    altered_domain_files = [
+        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link.nc",
+        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_1.nc",
+        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_2.nc",
+        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_3.nc",
+        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_4.nc"
+    ]
+    schedule = Scheduler.fromList(master_domain, altered_domain_files)
+    print(schedule)
+    # print(list(map(lambda x: x.mnt_point, list(schedule.jobQ))))
+
+    # slave = '/Users/austinraney/Box Sync/si/sandbox/framework_test/slave_domain'
+    # print(s.runJob('aaraney/nwm-run-env', slave, '0-3'))
 

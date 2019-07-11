@@ -19,7 +19,7 @@ class Job:
     def __init__(self, mnt_point, parent_mnt_point, alt_domain_list):
         self.mnt_point = mnt_point
         self.parent_mnt_point = parent_mnt_point
-        self.alt_domain_list = list(map(lambda x: realpath(x), alt_domain_list) if len(alt_domain_list) else [])
+        self.alt_domain_list = alt_domain_list
         self._container_id = None
         # self.mpi_host_file = mpi_host_file
 

@@ -4,7 +4,7 @@ from os import link, makedirs, remove
 from os.path import join, realpath, basename, dirname
 from glob import glob
 
-
+# TODO: Redact the name of this module to DomainSetup
 class NwmDomainSetup(object):
 
     def __init__(self, master_dir, slave_dir, alt_domain_list=[], nwm_src='/nwm/Run/', setup_model=True):
@@ -39,16 +39,7 @@ class NwmDomainSetup(object):
         Remove forcings and restarts
         Aggregate files to better location
         '''
-        pass
-
-    def createSlave(self):
-        '''
-        Creates slave dir in parent dir of the master
-        i.e.
-        if master is /master, slave will be created
-        at /slave
-        '''
-        # undecided if I want to make this function or not
+        # TODO: Implement this method
         pass
 
     def __link(self, dest_dir, *src_files):
@@ -57,7 +48,7 @@ class NwmDomainSetup(object):
         full pathnames were used when linking files --
         as mpi does not handle relative links well.
         '''
-        # link full path of src file to dest_dir using
+        # Link full path of src file to dest_dir using
         # the name of src file
         def _link(src):
             link(realpath(src), join(dest_dir, basename(src)))
@@ -108,12 +99,6 @@ class NwmDomainSetup(object):
         makedirs(self.slave_dir, exist_ok=True)
         makedirs(join(self.slave_dir, 'DOMAIN'), exist_ok=True)
         makedirs(join(self.slave_dir, 'FORCING'), exist_ok=True)
-
-
-        # Symlink TBL and wrf_hydro.exe to slave
-        # THIS NEEDS TO BE CHANGED TO INTERACT WITH CONTAINER
-        # self.__link(self.slave_dir, *glob(join(self.nwm_src, '*.TBL')))
-        # self.__link(self.slave_dir, 'wrf_hydro.exe')
 
         # mkdir and symlink DOMAIN and FORCING files
         domain_file_list = self.populateDomainFiles(self.alt_domain_list)
