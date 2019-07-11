@@ -5,10 +5,11 @@ USER root
 
 ARG USER=water-boy
 
-WORKDIR /home/${USER}
+#WORKDIR /home/${USER}
+WORKDIR /home/
 
-RUN adduser -G wheel -D -S -s /bin/bash ${USER}
-USER ${USER}
+#RUN adduser -G wheel -D -S -s /bin/bash ${USER}
+#USER ${USER}
 
 #ARG DOMAIN=https://github.com/aaraney/PBenJ/branches/framework-dev/framework_dev/SIPSEY_WILDERNESS_DOMAIN/
 # ARG DOMAIN_DIRNAME=$(realpath $(basename ${DOMAIN}))
@@ -17,8 +18,8 @@ USER ${USER}
 #    && cp /nwm /home/${USER}/
 
 # Personal setup
-RUN echo "set -o vi" >> /home/${USER}/.bash_profile \
-    && echo "set completion-ignore-case On" >> /home/${USER}/.inputrc \
-    && echo "alias nwm=$(cd ${NWM})" >> /home/${USER}/.bash_profile
+#RUN echo "set -o vi" >> /home/${USER}/.bash_profile \
+#    && echo "set completion-ignore-case On" >> /home/${USER}/.inputrc \
+#    && echo "alias nwm=$(cd ${NWM})" >> /home/${USER}/.bash_profile
 
 ENTRYPOINT ["bash"]
