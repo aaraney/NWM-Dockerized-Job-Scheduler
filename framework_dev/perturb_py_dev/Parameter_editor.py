@@ -38,7 +38,7 @@ def para_editor_evenly_scaler(ds, para_name, scale):
         # but is necessary to be calculated in order to be able to calculate BtmWdth to
 
         # Be careful of neg values being root squared: happens when dramatically decrease ChSlp
-        ds['BtmWdth'][:] = (ds['TopWdth'][:]**2-(4.0*cs_area)/ds['ChSlp'][:])**0.5
+        ds['BtmWdth'][:] = (ds['TopWdth'][:] ** 2 - 4.0 * cs_area * ds['ChSlp'][:]) ** 0.5
 
         ds.attrs['Edits_made'] += ' ** Also, para ' + 'BtmWdth' + ' was changed as dependent para '  # Modify the MetaData
 
@@ -46,7 +46,7 @@ def para_editor_evenly_scaler(ds, para_name, scale):
     if para_name == 'BtmWdth':
         #  Following 2 equations are from Blackburn et al.
         cs_area = cross_section_area_BlckBrn(ds['TopWdth'][:])
-        ds['ChSlp'][:] = (ds['TopWdth'][:] ** 2 - ds['BtmWdth'][:] ** 2) / 4.0 * cs_area  # it got inversed since CHSlop H/V
+        ds['ChSlp'][:] = (ds['TopWdth'][:] ** 2 - ds['BtmWdth'][:] ** 2) / (4.0 * cs_area)
 
         ds.attrs['Edits_made'] += ' ** Also, param ' + 'ChSlp' + ' was changed as dependent para '  # Modify the MetaData
 
@@ -105,13 +105,13 @@ def para_editor_streamorder_based_scaler(ds, para_name, streamorder_list, scale_
         #  Following 2 equations are from Blackburn et al.
         cs_area = cross_section_area_BlckBrn(ds['TopWdth'][:])
         # Be careful of neg values being root squared: happens when dramatically decrease ChSlp
-        ds['BtmWdth'][:] = (ds['TopWdth'][:]**2-(4.0*cs_area)/ds['ChSlp'][:])**0.5 # IMPORTANT: CHECK IT OUT
+        ds['BtmWdth'][:] = (ds['TopWdth'][:] ** 2 - 4.0 * cs_area * ds['ChSlp'][:]) ** 0.5
         ds.attrs['Edits_made'] += ' ** Also, para ' + 'BtmWdth' + ' was changed as dependent para '  # Modify the MetaData
 
     if para_name == 'BtmWdth':
         #  Following 2 equations are from Blackburn et al.
         cs_area = cross_section_area_BlckBrn(ds['TopWdth'][:])
-        ds['ChSlp'][:] = (ds['TopWdth'][:] ** 2 - ds['BtmWdth'][:] ** 2) / 4.0 * cs_area  # it got inversed since CHSlop H/V
+        ds['ChSlp'][:] = (ds['TopWdth'][:] ** 2 - ds['BtmWdth'][:] ** 2) / (4.0 * cs_area)
         ds.attrs['Edits_made'] += ' ** Also, param ' + 'ChSlp' + ' was changed as dependent para '  # Modify the MetaData
 
     return ds
@@ -139,7 +139,7 @@ problem = {
 # Generate the parameter space based on latin hypercube sampling
 scales_list_of_lists = (np.round(latin.sample(problem, 6), len(params_list))).tolist()
 # scales_list_of_lists = [[1.1, 1.2, 1.5], [1.1, 1.2, 4], [1.1, 1.2, 5],
-#                         [1.1, 1.2, 6], [1.1, 1.2, 10], [1.1, 1.2, 20]] # Arbitrarily, chosen
+#                         [1.1, 1.2, 6], [1.1, 1.2, 10], [1.1, 1.2, 20]] # Arbitrarily chosen
 
 for scales_list in scales_list_of_lists:
     ds1, outputpath_final = para_editor_evenly_scaler_multi_para(Filename, outputpath, params_list, scales_list)
@@ -154,7 +154,7 @@ for scales_list in scales_list_of_lists:
     print(ds1.Edits_made.split('||'))
 
 
-# --------------------------Example of Scaler based on Streamorder----------------------------------
+# --------------------------Example of Scaler based on Streamorder ----------------------------------
 # para_name = 'BtmWdth'
 # ds = xr.open_dataset(Filename)
 #
