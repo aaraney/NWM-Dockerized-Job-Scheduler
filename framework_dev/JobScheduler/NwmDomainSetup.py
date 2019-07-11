@@ -1,8 +1,11 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 from os import link, makedirs, remove
 from os.path import join, realpath, basename, dirname
 from glob import glob
+
+# Local import
+from filehandler import identifyDomainFile
 
 # TODO: Redact the name of this module to DomainSetup
 class NwmDomainSetup(object):
@@ -62,7 +65,7 @@ class NwmDomainSetup(object):
                 remove(join(dest_dir, basename(item)))
             self.__link(dest_dir, *src_files)
 
-    def populateDomainFiles(self, alt_domain_list):
+    def populateAltDomainFiles(self, alt_domain_list):
         # This could be recoded in the future to be more
         # readable/better coded.
 
@@ -101,7 +104,7 @@ class NwmDomainSetup(object):
         makedirs(join(self.slave_dir, 'FORCING'), exist_ok=True)
 
         # mkdir and symlink DOMAIN and FORCING files
-        domain_file_list = self.populateDomainFiles(self.alt_domain_list)
+        domain_file_list = self.populateAltDomainFiles(self.alt_domain_list)
 
         self.__link(join(self.slave_dir, 'DOMAIN'), *domain_file_list)
         self.__link(join(self.slave_dir, 'FORCING'), *glob(join(self.master_dir, 'FORCING/*')))
@@ -113,7 +116,7 @@ class NwmDomainSetup(object):
 
 
 if __name__=='__main__':
-    from JobScheduler.Job import Job
+    from job import Job
     master_path = '/Users/austinraney/Box Sync/si/sandbox/framework_test/master_domain'
     slave_path = '/Users/austinraney/Box Sync/si/sandbox/framework_test/slave_domain'
     nwm_path = '/Users/austinraney/Box Sync/si/local/ms_domain1'
