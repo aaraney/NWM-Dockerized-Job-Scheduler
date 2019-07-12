@@ -188,10 +188,3 @@ for scales_list in scales_list_of_lists:
 #
 # # Create the edited netcdf file
 # ds1.to_netcdf(outputpath)
-
-
-
-
-
-
-
