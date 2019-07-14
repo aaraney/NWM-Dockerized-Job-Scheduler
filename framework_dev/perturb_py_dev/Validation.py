@@ -216,7 +216,7 @@ def report_perfomance_metrics(SimulatedStreamFlow, ObservedStreamFlow, reportfil
 
     if runnumber == 1:
         printline = ''
-        printline += printline + 'RunNumber, NSE, PB, RMSE, R_squared \n'
+        printline += printline + 'RunNumber,NSE,PB,RMSE,R_squared\n'
         f = open(os.path.join(reportfile_directory, "PerfMetrReport.csv"), "w")
         f.writelines(printline)
         f.close()
@@ -224,8 +224,8 @@ def report_perfomance_metrics(SimulatedStreamFlow, ObservedStreamFlow, reportfil
     printline = ''
     printline += '\n'
     printline = 'Run ' + str(runnumber) + ' ,'
-    printline += '{0:.3f},{1:.3f},{2:.3f},{3:.3f},' \
-        .format(NSE, PercentBias, RMSE, R_squared,)
+    printline += '{0:.3f},{1:.3f},{2:.3f},{3:.3f}' \
+        .format(NSE, PercentBias, RMSE, R_squared)
 
     printline += '\n'
     f = open(os.path.join(reportfile_directory, "PerfMetrReport.csv"), "a")
