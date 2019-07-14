@@ -16,9 +16,9 @@ class Job:
         The parameter alt_domain_list is inaptly named as of now.
         Currently only one file is supported by the Scheduler
     '''
-    def __init__(self, mnt_point, parent_mnt_point, alt_domain_list):
-        self.mnt_point = mnt_point
-        self.parent_mnt_point = parent_mnt_point
+    def __init__(self, replica_mnt_point, primary_mnt_point, alt_domain_list):
+        self.replica_mnt_point = replica_mnt_point
+        self.primary_mnt_point = primary_mnt_point
         self.alt_domain_list = alt_domain_list
         self._container_id = None
         # self.mpi_host_file = mpi_host_file
@@ -26,7 +26,7 @@ class Job:
     def __str__(self):
         return 'mnt: {}\nparent mnt: {}\ndomain list: {}\ncontainer_id: {}' \
                .format(
-            self.mnt_point, self.parent_mnt_point,
+            self.replica_mnt_point, self.primary_mnt_point,
             self.alt_domain_list,self.container_id
         )
 

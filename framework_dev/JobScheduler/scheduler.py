@@ -10,7 +10,7 @@ import docker
 
 # Local imports
 from job import Job
-from nwmdomainsetup import NwmDomainSetup
+from domainsetup import *
 
 # Problem list:
 # 1. There are no job mnt point collision tactics in place thus far
@@ -34,12 +34,10 @@ class Scheduler:
         # directory filename
         self.schedule_id = randint(0,999)
 
-        self.alt_domain_file_list = []
-
         self.runningContainerDict = {}
         self._jobQ = queue.deque()
 
-        self._image_tag = None
+        self._image_tag = 'aaraney/nwm-run-env:2.0'
         # Max jobs is the max number of jobs
         # running at any given time
         # TODO: Find information from system to inform this
@@ -50,7 +48,7 @@ class Scheduler:
         self._MAX_CPUS = 1
 
     @classmethod
-    def fromList(cls, master_domain, alt_domain_list):
+    def fromList(cls, primary_dir, alt_domain_list):
         '''
         Fill jobs queue from list of file names
 
@@ -64,13 +62,13 @@ class Scheduler:
             have a single changed domain files per run.
         '''
         scheduler = cls()
-        for i,file in enumerate(alt_domain_list):
+        for i, file in enumerate(alt_domain_list):
             # There are no job mnt point
             # collision tactics in place
             # thus far
             # TODO: Add file collision avoidance tactics
-            mnt_point = join(dirname(master_domain), 'job-{}-session-{}'.format(i, scheduler.schedule_id))
-            job = Job(mnt_point, master_domain, file)
+            replica_mnt_point = join(dirname(primary_dir), 'replica-{}-session-{}'.format(i, scheduler.schedule_id))
+            job = Job(replica_mnt_point,primary_dir, file)
             scheduler.enqueue(job)
         return scheduler
 
@@ -78,6 +76,10 @@ class Scheduler:
         # Embarrassing implementation
         # TODO: Make the readable
         return str(list(map(lambda x: print('{}\n'.format(x)), list(self._jobQ))))
+
+    @property
+    def client_list(self):
+        return self.docker_client.containers.list()
 
     @property
     def jobQ(self):
@@ -131,14 +133,14 @@ class Scheduler:
         # Return bool if image is pulled
         return image_tag in docker_repo_tag_list
 
-    def runJob(self, image_tag, slave, cpuset):
+    def runJob(self, job, image_tag, cpuset):
         volumes = {
-            slave : {'bind': '/slave',
+            job.replica_mnt_point : {'bind': '/slave',
                      'mode': 'rw'}
         }
         # TODO: Make sure that this works
-        slave.container_id = self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True, remove=True, volumes=volumes)
-        return slave
+        job.container_id = self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True, remove=True, volumes=volumes)
+        return job
 
     def enqueue(self, job):
         '''
@@ -148,10 +150,9 @@ class Scheduler:
 
     def setupJob(self, job):
         '''
-        Create slave dir and link files for job
+        Create replica dir and link files for job
         '''
-        slave = NwmDomainSetup.fromJob(job)
-        return slave
+        setupModel(job)
 
     def fillJobQueue(self):
         '''
@@ -162,24 +163,27 @@ class Scheduler:
         pass
 
 
+
     def startJobs(self):
         # Check for number of running containers if greater than allotted
-        if len(self.docker_client.containers.list()) >= self.MAX_JOBS:
-            print("System already at set MAX_JOBS quota.")
-            return None
+        if len(self.docker_client.containers.list()) > self._MAX_JOBS:
+            raise Exception('System already at set MAX_JOBS quota.')
+        # prior_running_containers_list = self.docker_client.containers.list() if len(self.docker_client.containers.list()) else None
+        running_containers_list = self.docker_client.containers.list()
 
         while len(self._jobQ) != 0:
-            if len(self.docker_client.containers.list()) <= self.MAX_JOBS:
-                slave = self._jobQ.pop()
-                slave = self.setupJob(slave)
-                # This code needs to be modernized
-                self.runJob(self.image_tag, slave, '0-3')
+            if len(running_containers_list) < self._MAX_JOBS:
+                job = self._jobQ.pop()
+                self.setupJob(job)
+                running_job = self.runJob(job, self.image_tag, '0-3')
+            running_containers_list = self.docker_client.containers.list()
+            print(list(map(lambda x: x.stats(stream=False), running_containers_list)))
 
                 # Implement database for metadata here
 
 
 if __name__=='__main__':
-    master_domain = "/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN_DEFAULT"
+    primary_path = '/Users/austinraney/Box Sync/si/sandbox/framework_test/primary_domain'
     altered_domain_files = [
         "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link.nc",
         "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_1.nc",
@@ -187,10 +191,6 @@ if __name__=='__main__':
         "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_3.nc",
         "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_4.nc"
     ]
-    schedule = Scheduler.fromList(master_domain, altered_domain_files)
-    print(schedule)
-    # print(list(map(lambda x: x.mnt_point, list(schedule.jobQ))))
-
-    # slave = '/Users/austinraney/Box Sync/si/sandbox/framework_test/slave_domain'
-    # print(s.runJob('aaraney/nwm-run-env', slave, '0-3'))
+    schedule = Scheduler.fromList(primary_path, altered_domain_files)
+    schedule.startJobs()
 
