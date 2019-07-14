@@ -1,7 +1,7 @@
 # FROM should be changed to the version
 # of the nwm that you want to run
 # see aaraney docker hub
-FROM aaraney/nwm:1.2
+FROM aaraney/nwm:2.0
 MAINTAINER aaraney@crimson.ua.edu
 
 USER root

@@ -41,7 +41,7 @@ class Scheduler:
         # Max jobs is the max number of jobs
         # running at any given time
         # TODO: Find information from system to inform this
-        self._MAX_JOBS = 2
+        self._MAX_JOBS = 4
 
         # Max cps is the max number of cpus
         # running at any given time
@@ -68,7 +68,7 @@ class Scheduler:
             # thus far
             # TODO: Add file collision avoidance tactics
             replica_mnt_point = join(dirname(primary_dir), 'replica-{}-session-{}'.format(i, scheduler.schedule_id))
-            job = Job(replica_mnt_point,primary_dir, file)
+            job = Job(replica_mnt_point, primary_dir, file)
             scheduler.enqueue(job)
         return scheduler
 
@@ -177,20 +177,22 @@ class Scheduler:
                 self.setupJob(job)
                 running_job = self.runJob(job, self.image_tag, '0-3')
             running_containers_list = self.docker_client.containers.list()
-            print(list(map(lambda x: x.stats(stream=False), running_containers_list)))
 
                 # Implement database for metadata here
 
 
 if __name__=='__main__':
-    primary_path = '/Users/austinraney/Box Sync/si/sandbox/framework_test/primary_domain'
+    from os.path import realpath
+    primary_path = realpath('../pocono_test_case')
     altered_domain_files = [
-        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link.nc",
-        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_1.nc",
-        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_2.nc",
-        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_3.nc",
-        "/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_4.nc"
+        "../pocono_test_case/Route_Link.nc",
+        "../pocono_test_case/Route_Link_1.nc",
+        "../pocono_test_case/Route_Link_2.nc",
+        "../pocono_test_case/Route_Link_3.nc",
+        "../pocono_test_case/Route_Link_4.nc"
     ]
+    # Map full path name to altered domain files
+    altered_domain_files = map(lambda f: realpath(f), altered_domain_files)
     schedule = Scheduler.fromList(primary_path, altered_domain_files)
     schedule.startJobs()
 
