@@ -49,5 +49,16 @@ def identifyDomainFile(domain_file):
 
 if __name__ == '__main__':
     file = '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/GEOGRID_LDASOUT_Spatial_Metadata.nc'
-    x = xr.open_dataset(file)
-    print(identifyDomainFile(file))
+    test_files = ['/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/Fulldom_hires.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/GEOGRID_LDASOUT_Spatial_Metadata.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/GWBUCKPARM.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/LAKEPARM.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/Route_Link.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/geo_em.d01.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/hydro2dtbl.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/nudgingParams.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/soil_properties.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/spatialweights.nc',
+    '/Users/austinraney/Box Sync/si/nwm/domains/pocono/NWM/DOMAIN/wrfinput_d01.nc']
+    for item in test_files:
+        print('{}\n{}\n\n'.format(identifyDomainFile(item),item))
