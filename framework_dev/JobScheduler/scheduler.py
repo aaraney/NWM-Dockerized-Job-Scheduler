@@ -12,6 +12,7 @@ import docker
 from job import Job
 from domainsetup import *
 
+# TODO:
 # Problem list:
 # 1. There are no job mnt point collision tactics in place thus far
 #    this should be implemented in fromList function. AR 7/10/19
@@ -19,6 +20,7 @@ from domainsetup import *
 
 
 class Scheduler:
+    # TODO: add doc string
 
     def __init__(self, docker_client=None):
         if not docker_client:
@@ -41,7 +43,7 @@ class Scheduler:
         # Max jobs is the max number of jobs
         # running at any given time
         # TODO: Find information from system to inform this
-        self._MAX_JOBS = 4
+        self._MAX_JOBS = 2
 
         # Max cps is the max number of cpus
         # running at any given time
@@ -138,7 +140,6 @@ class Scheduler:
             job.replica_mnt_point : {'bind': '/slave',
                      'mode': 'rw'}
         }
-        # TODO: Make sure that this works
         job.container_id = self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True, remove=True, volumes=volumes)
         return job
 
@@ -165,10 +166,12 @@ class Scheduler:
 
 
     def startJobs(self):
+        # TODO: add docstring and implement metadata database
+        '''
+        '''
         # Check for number of running containers if greater than allotted
         if len(self.docker_client.containers.list()) > self._MAX_JOBS:
             raise Exception('System already at set MAX_JOBS quota.')
-        # prior_running_containers_list = self.docker_client.containers.list() if len(self.docker_client.containers.list()) else None
         running_containers_list = self.docker_client.containers.list()
 
         while len(self._jobQ) != 0:
@@ -177,9 +180,6 @@ class Scheduler:
                 self.setupJob(job)
                 running_job = self.runJob(job, self.image_tag, '0-3')
             running_containers_list = self.docker_client.containers.list()
-
-                # Implement database for metadata here
-
 
 if __name__=='__main__':
     from os.path import realpath

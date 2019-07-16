@@ -37,8 +37,3 @@ class Job:
     @container_id.setter
     def container_id(self, id):
         self._container_id = id
-
-if __name__=="__main__":
-    j = Job('/slave','/master', ['nc1.nc'])
-    j.mnt_point = '/slave/new'
-    print(j)

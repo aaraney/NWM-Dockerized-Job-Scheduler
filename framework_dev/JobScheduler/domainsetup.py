@@ -25,12 +25,17 @@ def __link(dest_dir, *src_files):
     full pathnames were used when linking files --
     as mpi does not handle relative links well.
     '''
-    if type(src_files[0]) is dict:
+    # If there are no src files, return none
+    if not len(src_files):
+        return None
+
+    elif type(src_files[0]) is dict:
         src_files_dict = src_files[0]
         # for common name (i.e. Fulldom_hires.nc), source path
         for common_name, src in src_files_dict.items():
            # link master to slave with correct common name
             link(realpath(src), join(dest_dir, common_name))
+
     else:
         # Link full path of src file to dest_dir using
         # the name of src file
@@ -101,27 +106,15 @@ def setupModel(job):
     makedirs(replica_dir, exist_ok=True)
     makedirs(join(replica_dir, 'DOMAIN'), exist_ok=True)
     makedirs(join(replica_dir, 'FORCING'), exist_ok=True)
+    makedirs(join(replica_dir, 'RESTART'), exist_ok=True)
 
-    # mkdir and symlink DOMAIN and FORCING files
+    # Link DOMAIN and FORCING files
     domain_file_dict = populateDomainFiles(primary_dir, alt_domain_list)
 
     __link(join(replica_dir, 'DOMAIN'), domain_file_dict)
-    # TODO: Link forcing
-    # self.__link(join(self.slave_dir, 'FORCING'), *glob(join(self.master_dir, 'FORCING/*')))
+    __link(join(replica_dir, 'FORCING'), *glob(join(primary_dir, 'FORCING/*')))
+    __link(join(replica_dir, 'RESTART'), *glob(join(primary_dir, 'RESTART/*')))
 
     # link namelist files
     __link(join(replica_dir), join(primary_dir, 'hydro.namelist'))
     __link(join(replica_dir), join(primary_dir, 'namelist.hrldas'))
-
-if __name__=='__main__':
-    from job import Job
-    master_path = '/Users/austinraney/Box Sync/si/sandbox/framework_test/primary_domain'
-    slave_path = '/Users/austinraney/Box Sync/si/sandbox/framework_test/replica_domain_2'
-    nwm_path = '/Users/austinraney/Box Sync/si/local/ms_domain1'
-    domain_files = ['/Users/austinraney/Box Sync/si/nwm/domains/pocono/Route_Link_1.nc']
-
-    j = Job(slave_path, master_path, domain_files)
-    # nwm = NwmDomainSetup(slave_path, master_path, domain_files)
-    setupModel(j)
-    # nwm_job = NwmDomainSetup.fromJob(j, setup=True)
-    # print(nwm_job)
