@@ -14,7 +14,7 @@ an NCAR WRF-Hydro training that can be found [here](https://github.com/NCAR/wrf_
 experience the NWM is not RAM intensive, so this option needs not be
 changed.
 1. `docker pull aaraney/nwm-run-env:2.0`
-1. `git clone --single-branch --branch framework-dev https://github.com/aaraney/PBenJ.git nwm-run-env-pocono`
+1. `git clone https://github.com/aaraney/PBenJ.git nwm-run-env-pocono`
 1. `cd nwm-run-env-pocono/framework_dev/JobScheduler`
 1. `time python3 scheduler.py`
 
