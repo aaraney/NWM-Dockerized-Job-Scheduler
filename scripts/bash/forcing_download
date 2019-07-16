@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ "${1}" ];
+then
+	wget --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --keep-session-cookies -r -c -nH -nd -np -A grb,xml  --content-disposition "${1}"
+else
+	read url
+	#echo $url
+	wget --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --keep-session-cookies -r -c -nH -nd -np -A grb,xml  --content-disposition "${url}"
+fi

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ -z $(echo $PATH | grep "$PWD") ]; then
+	echo "# Scripts path from PBenJ" >> $HOME/.bashrc
+	echo "PATH=$(pwd):\$PATH" >> $HOME/.bashrc
+	echo "PATH set"
+	source $HOME/.bashrc
+else
+	echo "Already in PATH"
+fi
