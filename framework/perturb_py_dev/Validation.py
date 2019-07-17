@@ -2,13 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
-import glob, os
+import glob, os, sys
 # import xarray as xr
 import pandas as pd
 from datetime import datetime, timedelta
 import math
 import HydroErr as he  # Library for goodness of fit functions, Note: it still misses some (e.g., PB, RSR...)
 import requests
+sys.path.append('.')
+from metadataHandler import *
 
 # --------------------------------------------------------------------------------------------------
 # ---------------------------- Goodness of fit functions -------------------------------------------
@@ -137,7 +139,7 @@ def readNWMoutput_csv(directory):
 
     return df
 
-def readNWMoutput_csv_ensemble(frxst_files):
+def frxstFilestoDFs(frxst_files, metadataFileType='Route_link.nc'):
     '''
     Input: List of frxst points files from NWM
     Output: List of Datafile objects
@@ -151,18 +153,21 @@ def readNWMoutput_csv_ensemble(frxst_files):
     if not type(frxst_files) is list:
         raise TypeError
 
-    dateframe_col_names = ['Date-time', 'NHDplus_link', 'Q_cms']
+    metaDict = metadataDict(frxst_files, metadataFileType)
+
+    # Use run metadata to name the cms column in the dataframe
+    dateframe_col_names = ['Date-time', 'NHDplus_link', metaDict[frxst_files[0]]]
     joined_df = pd.read_csv(frxst_files[0], header=None, names=dateframe_col_names, sep=',', parse_dates=True
-                         ,index_col=None, usecols=[1, 2, 6])
+                         ,index_col=None, usecols=[1, 2, 5])
 
     # Set to capture unique NHDplus_links
     unique_stations = set(joined_df['NHDplus_link'])
 
     # If only one file in frxst_files, pass
     try:
-        for file in frxst_files[1:]:
+        for i, file in enumerate(frxst_files[1:]):
             # join dataframe with columns date, NHDPlus link, and Q in cms
-            df = pd.read_csv(file, header=None, names=['Q_cms'], sep=',',
+            df = pd.read_csv(file, header=None, names=[metaDict[frxst_files[i]]], sep=',',
                              parse_dates=False, index_col=None, usecols=[6])
             joined_df = pd.concat([joined_df, df], axis=1)
     except:
