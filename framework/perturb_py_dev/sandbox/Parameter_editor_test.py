@@ -1,7 +1,7 @@
 import sys
 from os.path import realpath
 sys.path.append(realpath('../'))
-from Validation import readNWMoutput_csv_ensemble
+from Parameter_editor import *
 
 Filename = r'C:\Users\Iman\Desktop\example_case\NWM\DOMAIN_DEFAULT\Route_Link.nc'
 outputpath = r'C:\Users\Iman\Desktop\Route_Link'
