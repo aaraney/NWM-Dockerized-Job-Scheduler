@@ -91,8 +91,7 @@ def downloadusgsdata(File_name, site_number, parameter_id, start_date, end_date,
         return
 
 
-    # TODO: handle observed data better. Maybe somehow use the WRES USGS reader function in R!!, otherwise download the data
-# here and then tweak the following function a little bit..
+    # TODO: handle observed data better. Maybe somehow use the WRES USGS reader function in R!!
 def readobserved(directory):
     '''(Observed data directory)'''
     # Creating data frame for observed discharge downloaded from USGS Website
