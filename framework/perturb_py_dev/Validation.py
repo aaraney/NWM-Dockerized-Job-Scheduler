@@ -1,5 +1,5 @@
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
 import glob, os
@@ -7,9 +7,8 @@ import glob, os
 import pandas as pd
 from datetime import datetime, timedelta
 import math
-# import HydroErr as he  # Library for goodness of fit functions, Note: it still misses some (e.g., PB, RSR...)
-# from pytz import timezone
-# import pytz
+import HydroErr as he  # Library for goodness of fit functions, Note: it still misses some (e.g., PB, RSR...)
+import requests
 
 # --------------------------------------------------------------------------------------------------
 # ---------------------------- Goodness of fit functions -------------------------------------------
@@ -27,7 +26,6 @@ def PB(SimulatedStreamFlow, ObservedStreamFlow):
         B = B + y[i]
     PB = (A / B)  # Percent Bias model eficiency coefficient
     return PB
-
 
 def RSR(SimulatedStreamFlow, ObservedStreamFlow):
     '''(SimulatedStreamFlow, ObservedStreamFlow)'''
@@ -51,13 +49,58 @@ def RSR(SimulatedStreamFlow, ObservedStreamFlow):
 # ----------------------- Reading in sim & obs datasets functions-----------------------------------
 # --------------------------------------------------------------------------------------------------
 
-# TODO: handle observed data better. Maybe somehow use the WRES USGS reader function in R!!, otherwise download the data
+def downloadusgsdata(File_name, site_number, parameter_id, start_date, end_date, save_file=True, output_vec=False):
+    ## EXAMPLE OF VALID INPUTS:
+    # site_number = '01447680'
+    # File_name = '01447680_0060.txt'
+    # parameter_id = '00060' # Discharge, cubic feet per second
+    # start_date = '2013-02-03'
+    # end_date = pd.datetime.today().strftime('%Y-%m-%d')
+
+    # Creating the url to receive the real time data (USGS format)
+    url = 'https://nwis.waterdata.usgs.gov/usa/nwis/uv/?cb_{para_id}=on&format=rdb&site_no={site_id}&period=&' \
+          'begin_date={beg_date}&end_date={end_date}'.format(
+        para_id=parameter_id,
+        site_id=site_number,
+        end_date=end_date,
+        beg_date=start_date
+    )
+
+    # Downloads url
+    r = requests.get(url)
+
+    # Checks if save_file option is enabled
+    if save_file == True:
+        # Saves data in text file
+        with open(File_name, 'w') as f:
+            f.write(r.text)
+
+    # else:
+
+    # Prints warning that file was not saved
+    # print("<<Warning: File not saved>>")
+
+    # Checks if output_vec option is enabled
+    if output_vec == True:
+        # function returns data vector
+        # print("<<Warning: output vector enabled>>")
+        return r.text
+
+    else:
+        # function returns nothing
+        return
+
+
+    # TODO: handle observed data better. Maybe somehow use the WRES USGS reader function in R!!, otherwise download the data
 # here and then tweak the following function a little bit..
 def readobserved(directory):
     '''(Observed data directory)'''
-    # Creating data frame for observed discharge
-    df = pd.read_csv(directory, header=0, sep=',', parse_dates=True,  # index_col=0
-                         infer_datetime_format=True)
+    # Creating data frame for observed discharge downloaded from USGS Website
+    dateframe_col_names = ['Date-time', 'tz_cd', 'Q_cms']
+    df = pd.read_csv(directory, header=0, sep='\t', parse_dates=True, index_col=None, names=dateframe_col_names,
+                     infer_datetime_format=True, comment='#', usecols=[2, 3, 4], skiprows=range(28))
+
+    df['Q_cms'] *= 0.0283168  # Convert from cfs to cms
     return df
 
 
@@ -98,7 +141,7 @@ def readNWMoutput_csv(directory):
 def readNWMoutput_csv_ensemble(frxst_files):
     '''
     Input: List of frxst points files from NWM
-    Output: List of Dataframe objects
+    Output: List of Datafile objects
 
     Each item in the returned list is a dataframe object where each
     dataframe relates to a unique NHDplus node from the frxst points files.
@@ -133,16 +176,28 @@ def LocaltoUTC(df):
     '''(Dataframe)'''
     # Convert local time to UTC (Note: Python libraries for handing time zone does not work properly for USGS data)
     start_time = datetime.now()
-    for i in range(len(df)):  # takes 70 seconds for 2 years with 15-minute sampling interval
 
-        if df['tz_cd'][i] == 'CST':
-            df.loc[[i], 'datetime'] = df.datetime[i] + timedelta(hours=6)
+    if df['tz_cd'][0] == 'CST' or 'CDT':
+        for i in range(len(df)):  # takes 70 seconds for 2 years with 15-minute sampling interval
 
-        elif df_obs['tz_cd'][i] == 'CDT':
-            df.loc[[i], 'datetime'] = df.datetime[i] + timedelta(hours=5)
+            if df['tz_cd'][i] == 'CST':
+                df.loc[[i], 'Date-time'] += timedelta(hours=6)
 
-    df = df.sort_values(by='datetime', ascending=True)  # Sorts the data based on timestamp. Check the lines 28128 - 28136 before sorting to see the problem!
-    df_obs['tz_cd'] = 'UTC'
+            elif df['tz_cd'][i] == 'CDT':
+                df.loc[[i], 'Date-time'] += timedelta(hours=5)
+
+    if df['tz_cd'][0] == 'EST' or 'EDT':
+        for i in range(len(df)):
+
+            if df['tz_cd'][i] == 'EST':
+                df.loc[[i], 'Date-time'] += timedelta(hours=5)
+
+            elif df['tz_cd'][i] == 'EDT':
+                df.loc[[i], 'Date-time'] += timedelta(hours=4)
+
+
+    df = df.sort_values(by='Date-time', ascending=True)  # Sorts the data based on timestamp. Check the lines 28128 - 28136 before sorting to see the problem!
+    df['tz_cd'] = 'UTC'
     print('Took this amount of time to convert local-time to UTC: ', datetime.now() - start_time)
     return df
 
@@ -168,6 +223,7 @@ def masker(df, beg_date, end_date):
     df_masked = df.loc[mask]
 
     return df_masked
+
 
 # TODO: to be more generalized to handle any metrics that given to function as a list (not just the 4 current ones)...
 def report_perfomance_metrics(SimulatedStreamFlow, ObservedStreamFlow, reportfile_directory, runnumber = 1):
@@ -203,3 +259,4 @@ def report_perfomance_metrics(SimulatedStreamFlow, ObservedStreamFlow, reportfil
     f.close()
 
     return NSE, PercentBias, RMSE, R_squared
+
