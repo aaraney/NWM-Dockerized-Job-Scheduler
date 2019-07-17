@@ -99,7 +99,7 @@ def readNWMoutput_csv(directory):
 def readNWMoutput_csv_ensemble(frxst_files):
     '''
     Input: List of frxst points files from NWM
-    Output: List of Datafile objects
+    Output: List of Dataframe objects
 
     Each item in the returned list is a dataframe object where each
     dataframe relates to a unique NHDplus node from the frxst points files.
