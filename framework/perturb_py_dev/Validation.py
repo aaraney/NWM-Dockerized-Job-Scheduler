@@ -10,27 +10,11 @@ import math
 # import HydroErr as he  # Library for goodness of fit functions, Note: it still misses some (e.g., PB, RSR...)
 # from pytz import timezone
 # import pytz
-
+iman + 535
 
 # --------------------------------------------------------------------------------------------------
 # ---------------------------- Goodness of fit functions -------------------------------------------
 # --------------------------------------------------------------------------------------------------
-
-def NSE(SimulatedStreamFlow, ObservedStreamFlow):
-    '''(SimulatedStreamFlow, ObservedStreamFlow)'''
-    x = SimulatedStreamFlow
-    y = ObservedStreamFlow
-    A = 0.0  # dominator
-    B = 0.0  # deminator
-    tot = 0.0
-    for i in range(0, len(y)):
-        tot = tot + y[i]
-    average = tot / len(y)
-    for i in range(0, len(y)):
-        A = A + math.pow((y[i] - x[i]), 2)
-        B = B + math.pow((y[i] - average), 2)
-    E = 1 - (A / B)  # Nash-Sutcliffe model eficiency coefficient
-    return E
 
 # Define definition for Percent Bias model efficiency coefficient---used up in the class
 def PB(SimulatedStreamFlow, ObservedStreamFlow):
@@ -45,10 +29,6 @@ def PB(SimulatedStreamFlow, ObservedStreamFlow):
     PB = (A / B)  # Percent Bias model eficiency coefficient
     return PB
 
-def R2(SimulatedStreamFlow, ObservedStreamFlow):
-    R = np.corrcoef(SimulatedStreamFlow, ObservedStreamFlow)[0, 1]
-    R2 = math.pow(R, 2)  # Corelation coefficient
-    return R2  # 0 is the best and + 1 is the worst
 
 def RSR(SimulatedStreamFlow, ObservedStreamFlow):
     '''(SimulatedStreamFlow, ObservedStreamFlow)'''
@@ -229,24 +209,35 @@ def report_perfomance_metrics(SimulatedStreamFlow, ObservedStreamFlow, reportfil
 # --------------------------------------------------------------------------------------------------
 # --------------------------- Reading in sim & obs datasets ----------------------------------------
 # --------------------------------------------------------------------------------------------------
-# beg_date = '2011-03-05 01:00:00'
-# end_date = '2011-03-19 00:00:00'
-# Runnumbers = [1, 2, 3, 4]
-#
-# # Directory to observed data
-# obs_data_dir = 'C:/Users/Iman/Desktop/02450250_1.csv'
-#
-# # Directory to simulated data
-# # sim_data_dir = 'C:/Users/Iman/Desktop/chan_05_2011_frxst_pts_out.txt' # for one simulated time series. Not for ensemble
-# sim_data_dir = r'C:\Users\Iman\Desktop'
-#
-#
-# # Read observed data
-# df_obs = readobserved(obs_data_dir)
-# # Reformat the datetime
-# df_obs['datetime'] = pd.to_datetime(df_obs['datetime'], format='%m/%d/%Y %H:%M')
-# # Convert local time to UTC
-# df_obs = LocaltoUTC(df_obs)
+beg_date = '2018-01-01 02:00:00'
+end_date = '2018-06-31 00:00:00'
+Runnumbers = [1, 2, 3, 4]
+
+# Directory to observed data
+obs_data_dir = 'C:/Users/Iman/Desktop/02450250_1.csv'
+
+# Directory to simulated data
+# sim_data_dir = 'C:/Users/Iman/Desktop/chan_05_2011_frxst_pts_out.txt' # for one simulated time series. Not for ensemble
+sim_data_dir = r'C:\Users\Iman\Desktop'
+
+
+# Read observed data
+df_obs = readobserved(obs_data_dir)
+# Reformat the datetime
+df_obs['datetime'] = pd.to_datetime(df_obs['datetime'], format='%m/%d/%Y %H:%M')
+# Convert local time to UTC
+df_obs = LocaltoUTC(df_obs)
+# Set datetime column as index
+df_obs.set_index('datetime', inplace=True)
+df_obs['tz_cd'] = 'UTC'
+# Donwsample the observed data
+df_obs_downsampled = downsampler(df_obs)
+# Mask the dataset
+df_obs_masked = masker(df_obs_downsampled, beg_date, end_date)
+
+
+# # Read simulated data
+# df_sim = readNWMoutput_csv(sim_data_dir)
 # # Set datetime column as index
 # df_obs.set_index('datetime', inplace=True)
 # df_obs['tz_cd'] = 'UTC'
