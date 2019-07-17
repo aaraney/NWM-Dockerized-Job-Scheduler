@@ -32,9 +32,7 @@ def para_editor_evenly_scaler(ds, para_name, scale):
 
 
     ds[para_name][:] *= scale  # Modify the parameter
-    ds.attrs['Edits_made'] += metadata_string(para_name, '*', scale)
-    # ds.attrs['Edits_made'] += 'Para ' + str(para_name) + ' scaled by ' + str(scale)  # Modify the MetaData
-
+    ds.attrs['Edits_made'] += metadata_string(para_name, '*', scale) # Modify the MetaData
 
     # !!!Be advised: should better define the cs_area, currently, it is a xarray dataframe and the variable name is
     # not correct...but it works!
@@ -48,7 +46,7 @@ def para_editor_evenly_scaler(ds, para_name, scale):
 
         # ds.attrs['Edits_made'] += ' ** Also, para ' + 'BtmWdth' + ' was changed as dependent para '  # Modify the MetaData
         # TODO: Might need to add for dependent parameter case?
-        ds.attrs['Edits_made'] += metadata_string(para_name, '*', scale, key='d')
+        ds.attrs['Edits_made'] += metadata_string('BtmWdth', '', '', key='d')
 
 
     if para_name == 'BtmWdth':
@@ -58,7 +56,7 @@ def para_editor_evenly_scaler(ds, para_name, scale):
 
         # ds.attrs['Edits_made'] += ' ** Also, param ' + 'ChSlp' + ' was changed as dependent para '  # Modify the MetaData
         # TODO: Might need to add for dependent parameter case?
-        ds.attrs['Edits_made'] += metadata_string(para_name, '*', scale, key='d')
+        ds.attrs['Edits_made'] += metadata_string('ChSlp', '', '', key='d')
 
     return ds
 
