@@ -1,7 +1,7 @@
 import sys
 from os.path import realpath
 sys.path.append(realpath('../'))
-from Validation import readNWMoutput_csv_ensemble
+from Validation import frxstFilestoDFs
 
 files_list = [
 '/Volumes/si_ar/pocono_25/pocono_2/replica-2-session-674/frxst_pts_out.txt',
@@ -28,7 +28,6 @@ files_list = [
 '/Volumes/si_ar/pocono_25/pocono_2/replica-0-session-674/frxst_pts_out.txt',
 '/Volumes/si_ar/pocono_25/pocono_2/replica-22-session-674/frxst_pts_out.txt',
 '/Volumes/si_ar/pocono_25/pocono_2/replica-9-session-674/frxst_pts_out.txt',
-'/Volumes/si_ar/pocono_25/pocono_2/replica-16-session-674/frxst_pts_out.txt'
 ]
 
-db = readNWMoutput_csv_ensemble(files_list)
+db =frxstFilestoDFs(files_list)
