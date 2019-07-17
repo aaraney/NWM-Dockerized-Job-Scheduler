@@ -7,7 +7,7 @@ import glob, os
 import pandas as pd
 from datetime import datetime, timedelta
 import math
-import HydroErr as he  # Library for goodness of fit functions, Note: it still misses some (e.g., PB, RSR...)
+# import HydroErr as he  # Library for goodness of fit functions, Note: it still misses some (e.g., PB, RSR...)
 # from pytz import timezone
 # import pytz
 
@@ -116,47 +116,38 @@ def readNWMoutput_csv(directory):
 
     return df
 
+def readNWMoutput_csv_ensemble(frxst_files):
+    '''
+    Input: List of frxst points files from NWM
+    Output: List of Datafile objects
 
-def reanNWMoutput_csv_ensemble(directory):
-    '''(Directory that has all the NWM output runs (simulated time series)'''
-    # This function creating data frame for the ensemble of simulated discharge
-    # colnames = ['discharge_cms', 'discharge_cfs']
-    colnames = ['discharge_cfs']
-    usecol = [5, 6]  # The column number in the output file from NWM corresponding to colnames
-    usecol = [6]  # The column number in the output file from NWM corresponding to colnames
+    Each item in the returned list is a dataframe object where each
+    dataframe relates to a unique NHDplus node from the frxst points files.
 
-    isdfcreated = False
-    for i, colname in enumerate(colnames):
-        print("-" * 35)
-        print("colname: ", colname)
-        print("-" * 35)
-        for Runnumber in [1, 2, 3, 4]:
-            print('Reading outputfor {}'.format(Runnumber))
-            out_dir = os.path.join(directory, 'Run_{}.txt'.format(Runnumber))
-            # Get results into data frame
-            df_ = pd.read_csv(out_dir, header=None, names=[colnames[i]], sep=',', parse_dates=True, index_col=None,
-                              infer_datetime_format=True, usecols=[usecol[i]])
-            df_.columns = ['{}_Run_{}'.format(colname, Runnumber)]
-            # merge data frames into single data frame
-            if not isdfcreated:
-                isdfcreated = True
-                df = df_.copy()
-            else:
-                df = pd.concat([df, df_], axis=1, join='inner')
+    In each dataframe the cols relate to a specific
+    frxst points file.
+    '''
+    if not type(frxst_files) is list:
+        raise TypeError
 
-    # TODO: improve settting the index, it is not the best now!
-    # Set the datetime column as index of df
-    df2 = pd.read_csv(out_dir, header=None, names=['datetime'], sep=',', parse_dates=True, index_col=0,
-                      infer_datetime_format=True, usecols=[1])
-    df.index = df2.index
+    dateframe_col_names = ['Date-time', 'NHDplus_link', 'Q_cms']
+    joined_df = pd.read_csv(frxst_files[0], header=None, names=dateframe_col_names, sep=',', parse_dates=True
+                         ,index_col=None, usecols=[1, 2, 6])
 
-    df.index = pd.to_datetime(df.index, format='%Y-%m-%d %H:%M:%S')
+    # Set to capture unique NHDplus_links
+    unique_stations = set(joined_df['NHDplus_link'])
 
-    df.to_csv(os.path.join(directory, 'EnsembleRuns.csv'))
+    # If only one file in frxst_files, pass
+    try:
+        for file in frxst_files[1:]:
+            # join dataframe with columns date, NHDPlus link, and Q in cms
+            df = pd.read_csv(file, header=None, names=['Q_cms'], sep=',',
+                             parse_dates=False, index_col=None, usecols=[6])
+            joined_df = pd.concat([joined_df, df], axis=1)
+    except:
+        pass
 
-    print('Saved results into EnsembleRuns.csv file in the output directory')
-
-    return df
+    return [joined_df[joined_df.NHDplus_link == x] for x in unique_stations]
 
 # The following function, currently, only handles gages in Central time Zone. To be more generalized. It is also not that fast.
 def LocaltoUTC(df):
@@ -238,87 +229,87 @@ def report_perfomance_metrics(SimulatedStreamFlow, ObservedStreamFlow, reportfil
 # --------------------------------------------------------------------------------------------------
 # --------------------------- Reading in sim & obs datasets ----------------------------------------
 # --------------------------------------------------------------------------------------------------
-beg_date = '2011-03-05 01:00:00'
-end_date = '2011-03-19 00:00:00'
-Runnumbers = [1, 2, 3, 4]
-
-# Directory to observed data
-obs_data_dir = 'C:/Users/Iman/Desktop/02450250_1.csv'
-
-# Directory to simulated data
-# sim_data_dir = 'C:/Users/Iman/Desktop/chan_05_2011_frxst_pts_out.txt' # for one simulated time series. Not for ensemble
-sim_data_dir = r'C:\Users\Iman\Desktop'
-
-
-# Read observed data
-df_obs = readobserved(obs_data_dir)
-# Reformat the datetime
-df_obs['datetime'] = pd.to_datetime(df_obs['datetime'], format='%m/%d/%Y %H:%M')
-# Convert local time to UTC
-df_obs = LocaltoUTC(df_obs)
-# Set datetime column as index
-df_obs.set_index('datetime', inplace=True)
-df_obs['tz_cd'] = 'UTC'
-# Donwsample the observed data
-df_obs_downsampled = downsampler(df_obs)
-# Mask the dataset
-df_obs_masked = masker(df_obs_downsampled, beg_date, end_date)
-
-
-# # Read simulated data
-# df_sim = readNWMoutput_csv(sim_data_dir)
+# beg_date = '2011-03-05 01:00:00'
+# end_date = '2011-03-19 00:00:00'
+# Runnumbers = [1, 2, 3, 4]
+#
+# # Directory to observed data
+# obs_data_dir = 'C:/Users/Iman/Desktop/02450250_1.csv'
+#
+# # Directory to simulated data
+# # sim_data_dir = 'C:/Users/Iman/Desktop/chan_05_2011_frxst_pts_out.txt' # for one simulated time series. Not for ensemble
+# sim_data_dir = r'C:\Users\Iman\Desktop'
+#
+#
+# # Read observed data
+# df_obs = readobserved(obs_data_dir)
+# # Reformat the datetime
+# df_obs['datetime'] = pd.to_datetime(df_obs['datetime'], format='%m/%d/%Y %H:%M')
+# # Convert local time to UTC
+# df_obs = LocaltoUTC(df_obs)
 # # Set datetime column as index
-# df_sim.set_index('datetime', inplace=True)
+# df_obs.set_index('datetime', inplace=True)
+# df_obs['tz_cd'] = 'UTC'
+# # Donwsample the observed data
+# df_obs_downsampled = downsampler(df_obs)
+# # Mask the dataset
+# df_obs_masked = masker(df_obs_downsampled, beg_date, end_date)
+#
+#
+# # # Read simulated data
+# # df_sim = readNWMoutput_csv(sim_data_dir)
+# # # Set datetime column as index
+# # df_sim.set_index('datetime', inplace=True)
+# # # Mask the dataset
+# # df_sim_masked = masker(df_sim, beg_date, end_date)
+#
+#
+# # Read ensemble of simulated discharge
+# df_sim = readNWMoutput_csv_ensemble(sim_data_dir)
 # # Mask the dataset
 # df_sim_masked = masker(df_sim, beg_date, end_date)
-
-
-# Read ensemble of simulated discharge
-df_sim = reanNWMoutput_csv_ensemble(sim_data_dir)
-# Mask the dataset
-df_sim_masked = masker(df_sim, beg_date, end_date)
-
-
+#
+#
+# # # --------------------------------------------------------------------------------------------------
+# # # ---------------------- Calculate and Report the goodness of fit metrics --------------------------
+# # # --------------------------------------------------------------------------------------------------
+# # TODO: check R_squared, also I assumed that we have only 4 runs
+# for Runnumber in Runnumbers:
+#     report_perfomance_metrics(df_sim_masked['discharge_cfs_Run_{}'.format(Runnumber)], df_obs_masked['Discharge'],
+#                               'C:/Users/Iman/Desktop/', runnumber=Runnumber)
+#
 # # --------------------------------------------------------------------------------------------------
-# # ---------------------- Calculate and Report the goodness of fit metrics --------------------------
+# # -------------------------------------- PLOT ------------------------------------------------------
 # # --------------------------------------------------------------------------------------------------
-# TODO: check R_squared, also I assumed that we have only 4 runs
-for Runnumber in Runnumbers:
-    report_perfomance_metrics(df_sim_masked['discharge_cfs_Run_{}'.format(Runnumber)], df_obs_masked['Discharge'],
-                              'C:/Users/Iman/Desktop/', runnumber=Runnumber)
-
-# --------------------------------------------------------------------------------------------------
-# -------------------------------------- PLOT ------------------------------------------------------
-# --------------------------------------------------------------------------------------------------
-# TODO: if needed the plot part will be converted to function to better visualize Ensemble output
-
-fig, (ax1) = plt.subplots(nrows = 1, ncols = 1)
-# IMPORTANT! Fake data!
-for Runnumber in Runnumbers:
-    ax1.plot(df_sim_masked['discharge_cfs_Run_{}'.format(Runnumber)]*(Runnumber/4.0), linewidth=0.5, marker="None", label='Sim_{}'.format(Runnumber), alpha=0.6)
-
-# Important: Fake mean
-ax1.plot(df_sim_masked['discharge_cfs_Run_1']*1.2/2.0, c='g', linestyle='dashdot', linewidth=1.5, marker="None", label='Sim_Mean', alpha=0.9)
-# Observed data
-ax1.plot(df_obs_masked['Discharge'], c='B', linestyle='dashed', linewidth=1.5, marker="None",label='Observed', alpha=0.9)
-
-# Get current axes
-ax = plt.gca()
-#  set the x and y-axis labels
-ax.set_ylabel('Discharge (cfs)', fontsize=8)
-ax.set_xlabel('Date', fontsize=8)
-# # set the x and y-axis limits
-# ax.set_xlim([df_obs_masked.index[-2]-datetime.timedelta(hours=5), datetime.timedelta(minutes=10) + df_obs_masked.index[-2]])
-# ax.set_ylim([0, 10000])
-ax.grid(True)
-plt.tick_params(labelsize=6)
-# Add a title
-# plt.title('Plot!', fontsize=12)
-#  Add a legend with some customizations
-# legend = ax.legend(loc='upper right', shadow=True, fontsize=14)
-plt.legend(loc='best', fontsize=6)
-fig.set_size_inches(30, 20)
-fig.savefig('C:/Users/Iman/Desktop/Hydrograph.png', dpi=200)
-plt.show()
-
+# # TODO: if needed the plot part will be converted to function to better visualize Ensemble output
+#
+# fig, (ax1) = plt.subplots(nrows = 1, ncols = 1)
+# # IMPORTANT! Fake data!
+# for Runnumber in Runnumbers:
+#     ax1.plot(df_sim_masked['discharge_cfs_Run_{}'.format(Runnumber)]*(Runnumber/4.0), linewidth=0.5, marker="None", label='Sim_{}'.format(Runnumber), alpha=0.6)
+#
+# # Important: Fake mean
+# ax1.plot(df_sim_masked['discharge_cfs_Run_1']*1.2/2.0, c='g', linestyle='dashdot', linewidth=1.5, marker="None", label='Sim_Mean', alpha=0.9)
+# # Observed data
+# ax1.plot(df_obs_masked['Discharge'], c='B', linestyle='dashed', linewidth=1.5, marker="None",label='Observed', alpha=0.9)
+#
+# # Get current axes
+# ax = plt.gca()
+# #  set the x and y-axis labels
+# ax.set_ylabel('Discharge (cfs)', fontsize=8)
+# ax.set_xlabel('Date', fontsize=8)
+# # # set the x and y-axis limits
+# # ax.set_xlim([df_obs_masked.index[-2]-datetime.timedelta(hours=5), datetime.timedelta(minutes=10) + df_obs_masked.index[-2]])
+# # ax.set_ylim([0, 10000])
+# ax.grid(True)
+# plt.tick_params(labelsize=6)
+# # Add a title
+# # plt.title('Plot!', fontsize=12)
+# #  Add a legend with some customizations
+# # legend = ax.legend(loc='upper right', shadow=True, fontsize=14)
+# plt.legend(loc='best', fontsize=6)
+# fig.set_size_inches(30, 20)
+# fig.savefig('C:/Users/Iman/Desktop/Hydrograph.png', dpi=200)
+# plt.show()
+#
 
