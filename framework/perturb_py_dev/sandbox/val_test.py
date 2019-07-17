@@ -1,6 +1,6 @@
 import sys
 from os.path import realpath
-sys.path.append(realpath('.'))
+sys.path.append(realpath('../'))
 from Validation import readNWMoutput_csv_ensemble
 
 files_list = [
