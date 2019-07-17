@@ -2,7 +2,7 @@
 
 from os.path import join, dirname
 import queue
-import glob
+from datetime import datetime
 from functools import reduce
 import operator
 from random import randint
@@ -14,9 +14,7 @@ from domainsetup import *
 
 # TODO:
 # Problem list:
-# 1. There are no job mnt point collision tactics in place thus far
-#    this should be implemented in fromList function. AR 7/10/19
-# 2. CPU's and MAX_JOBS not well implemented at the moment
+# 1. CPU's and MAX_JOBS not well implemented at the moment
 
 
 class Scheduler:
@@ -30,11 +28,10 @@ class Scheduler:
 
         self.checkHeartBeat()
 
-        # Each run of scheduler is assigned
-        # an id. This id is assigned to each
-        # job of the scheduler in it's
-        # directory filename
-        self.schedule_id = randint(0,999)
+        # unique session id for each run of scheduler
+        # uses UTC time. this is appended to replica dir names
+        # see classmethods for implementation
+        self.schedule_id = datetime.utcnow().strftime('%y%m%d-%H%M%S')
 
         self.runningContainerDict = {}
         self._jobQ = queue.deque()
@@ -65,11 +62,8 @@ class Scheduler:
         '''
         scheduler = cls()
         for i, file in enumerate(alt_domain_list):
-            # There are no job mnt point
-            # collision tactics in place
-            # thus far
-            # TODO: Add file collision avoidance tactics
-            replica_mnt_point = join(dirname(primary_dir), 'replica-{}-session-{}'.format(i, scheduler.schedule_id))
+            # Each replica is named as such, rep-<number>-sesh-yymmdd-HMS
+            replica_mnt_point = join(dirname(primary_dir), 'rep-{}-sesh-{}'.format(i, scheduler.schedule_id))
             job = Job(replica_mnt_point, primary_dir, file)
             scheduler.enqueue(job)
         return scheduler
