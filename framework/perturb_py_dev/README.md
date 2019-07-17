@@ -1,3 +1,3 @@
 # README
 
-Development of python scripts to adjust NWM parameter sets.
+Development of hey iman python scripts to adjust NWM parameter sets.
