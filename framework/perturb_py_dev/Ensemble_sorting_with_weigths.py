@@ -30,6 +30,7 @@ df_sorted = df.copy()
 df_sorted['Score'] = df_eval['Score']/weights_sum
 df_sorted['Rank'] = df_sorted['Score'].rank(ascending=False)
 df_sorted.sort_values('Rank', inplace = True)
+df_sorted = round(df_sorted, 3)
 
 del df_eval
 
