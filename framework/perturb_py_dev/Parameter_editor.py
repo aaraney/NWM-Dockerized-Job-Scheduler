@@ -15,6 +15,11 @@ def cross_section_area_BlckBrn(TopWdth):
 
     return cs_area
 
+def metadata_string(parameter, opperator, amount, key='p'):
+    '''
+    key is either p or d depending on if the parameter is dependent or not
+    '''
+    return '{3}: {0}-{1}-{2}'.format(parameter,opperator, amount, key)
 
 def para_editor_evenly_scaler(ds, para_name, scale):
     '''(dateset, parameter name to be modified, scale)'''
@@ -27,7 +32,8 @@ def para_editor_evenly_scaler(ds, para_name, scale):
 
 
     ds[para_name][:] *= scale  # Modify the parameter
-    ds.attrs['Edits_made'] += '|| Para ' + str(para_name) + ' scaled by ' + str(scale)  # Modify the MetaData
+    ds.attrs['Edits_made'] += metadata_string(para_name, '*', scale)
+    # ds.attrs['Edits_made'] += 'Para ' + str(para_name) + ' scaled by ' + str(scale)  # Modify the MetaData
 
 
     # !!!Be advised: should better define the cs_area, currently, it is a xarray dataframe and the variable name is
@@ -40,7 +46,9 @@ def para_editor_evenly_scaler(ds, para_name, scale):
         # Be careful of neg values being root squared: happens when dramatically decrease ChSlp
         ds['BtmWdth'][:] = (ds['TopWdth'][:] ** 2 - 4.0 * cs_area * ds['ChSlp'][:]) ** 0.5
 
-        ds.attrs['Edits_made'] += ' ** Also, para ' + 'BtmWdth' + ' was changed as dependent para '  # Modify the MetaData
+        # ds.attrs['Edits_made'] += ' ** Also, para ' + 'BtmWdth' + ' was changed as dependent para '  # Modify the MetaData
+        # TODO: Might need to add for dependent parameter case?
+        ds.attrs['Edits_made'] += metadata_string(para_name, '*', scale, key='d')
 
 
     if para_name == 'BtmWdth':
@@ -48,7 +56,9 @@ def para_editor_evenly_scaler(ds, para_name, scale):
         cs_area = cross_section_area_BlckBrn(ds['TopWdth'][:])
         ds['ChSlp'][:] = (ds['TopWdth'][:] ** 2 - ds['BtmWdth'][:] ** 2) / (4.0 * cs_area)
 
-        ds.attrs['Edits_made'] += ' ** Also, param ' + 'ChSlp' + ' was changed as dependent para '  # Modify the MetaData
+        # ds.attrs['Edits_made'] += ' ** Also, param ' + 'ChSlp' + ' was changed as dependent para '  # Modify the MetaData
+        # TODO: Might need to add for dependent parameter case?
+        ds.attrs['Edits_made'] += metadata_string(para_name, '*', scale, key='d')
 
     return ds
 
