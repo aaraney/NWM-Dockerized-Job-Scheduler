@@ -7,7 +7,7 @@ import glob, os, sys
 import pandas as pd
 from datetime import datetime, timedelta
 import math
-import HydroErr as he  # Library for goodness of fit functions, Note: it still misses some (e.g., PB, RSR...)
+# import HydroErr as he  # Library for goodness of fit functions, Note: it still misses some (e.g., PB, RSR...)
 import requests
 sys.path.append('.')
 from metadataHandler import *
@@ -167,7 +167,7 @@ def frxstFilestoDFs(frxst_files, metadataFileType='Route_link.nc'):
     try:
         for i, file in enumerate(frxst_files[1:]):
             # join dataframe with columns date, NHDPlus link, and Q in cms
-            df = pd.read_csv(file, header=None, names=[metaDict[frxst_files[i]]], sep=',',
+            df = pd.read_csv(file, header=None, names=[metaDict[frxst_files[i+1]]], sep=',',
                              parse_dates=False, index_col=None, usecols=[5])
             joined_df = pd.concat([joined_df, df], axis=1)
     except:
