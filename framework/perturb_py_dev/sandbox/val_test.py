@@ -37,6 +37,10 @@ files_list = list(map(realpath, files_list))
 
 df = frxstFilestoDFs(files_list, 'Route_link.nc')
 
+df = list(map(lambda x: x.reindex(sorted(x.columns), axis=1), df))
+
+df[0].
+
 def plotEnsemble(df):
     '''
     This function creates a comparison plot
@@ -54,4 +58,4 @@ def plotEnsemble(df):
     plt.show()
 
 
-plotEnsemble(df[0])
+# plotEnsemble(df[0])
