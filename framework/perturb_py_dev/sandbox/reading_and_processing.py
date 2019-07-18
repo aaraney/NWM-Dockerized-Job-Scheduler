@@ -2,99 +2,113 @@ import sys
 from os.path import realpath
 sys.path.append(realpath('../'))
 from Validation import *
+from metadataHandler import *
+import pandas as pd
 
 # --------------------------------------------------------------------------------------------------
 # --------------------------- Reading in sim & obs datasets ----------------------------------------
 # --------------------------------------------------------------------------------------------------
-beg_date = '2018-01-12 01:00:00'
-end_date = '2018-07-01 00:00:00'
-Runnumbers = [1, 2, 3, 4]
+# NHD+: 4185779 = USGS 01447720 ||||||| NHD+: 44185837 USGS 01447680
+# for plotting and performance metrics
+beg_date = '2018-03-19 01:00:00'
+end_date = '2018-06-30 00:00:00'
+
+# -------------------------------- Handling observed data -----------------------------------------
+USGS_id_list = ['01447720', '01447680']
 
 # Directory to observed data
-obs_data_dir = 'C:/Users/Iman/Desktop/01447680_0060.txt'  # '01447720_00060.txt'
+obs_data_dir_list = ['C:/Users/Iman/Desktop/' + USGS_id_list[0] + '_00060.txt',
+                     'C:/Users/Iman/Desktop/' + USGS_id_list[1] + '_00060.txt']
 
-# Or download the USGS data via this:
-downloadusgsdata(obs_data_dir, '01447680', '00060', '2017-12-31', '2018-07-01')
+# Download the USGS data
+for i, USGS_id in enumerate(USGS_id_list):
+    downloadusgsdata(obs_data_dir_list[i], USGS_id, '00060', '2017-12-31', '2018-07-01')
 
-# Directory to simulated data
-# sim_data_dir = 'C:/Users/Iman/Desktop/chan_05_2011_frxst_pts_out.txt' # for one simulated time series. Not for ensemble
-sim_data_dir = 'C:/Users/Iman/Desktop'
+df_obs = []
+df_obs_downsampled = []
+df_obs_masked = []
+for i, USGS_id in enumerate(USGS_id_list):
+    # Read observed data
+    df_obs.append(readobserved(obs_data_dir_list[i]))
+    # Reformat the datetime
+    df_obs[i]['Date-time'] = pd.to_datetime(df_obs[i]['Date-time'], format='%Y-%m-%d %H:%M')
+    # Convert local time to UTC
+    df_obs[i] = LocaltoUTC(df_obs[i])
+    # Set datetime column as index
+    df_obs[i].set_index('Date-time', inplace=True)
+    # Donwsample the observed data
+    df_obs_downsampled.append(downsampler(df_obs[i]))
+    # Mask the dataset
+    df_obs_masked.append(masker(df_obs_downsampled[i], beg_date, end_date))
 
+# -------------------------------- Handling simulated data -----------------------------------------
+files_list = [
+'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-18-sesh-190718-192930/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-19-sesh-190718-192930/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-20-sesh-190718-192930/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-21-sesh-190718-192930/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-22-sesh-190718-192930/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-23-sesh-190718-192930/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-24-sesh-190718-192930/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-25-sesh-190718-192930/frxst_pts_out.txt'
+]
 
-# Read observed data
-df_obs = readobserved(obs_data_dir)
-# Reformat the datetime
-df_obs['Date-time'] = pd.to_datetime(df_obs['Date-time'], format='%Y-%m-%d %H:%M')
-# Convert local time to UTC
-df_obs = LocaltoUTC(df_obs)
-# Set datetime column as index
-df_obs.set_index('Date-time', inplace=True)
-# Donwsample the observed data
-df_obs_downsampled = downsampler(df_obs)
-# Mask the dataset
-df_obs_masked = masker(df_obs_downsampled, beg_date, end_date)
+files_list = list(map(realpath, files_list))
 
-dir = 'C:/Users/Iman/Desktop/pocono_25/pocono/'
-df_sim_0 = readNWMoutput_csv_ensemble([dir + 'replica-0-session-674/frxst_pts_out.txt',
-                                       dir + 'replica-1-session-674/frxst_pts_out.txt'])[0]
-
-
-df_sim_1 = readNWMoutput_csv_ensemble([dir + 'replica-0-session-674/frxst_pts_out.txt',
-                                       dir + 'replica-1-session-674/frxst_pts_out.txt'])[1]
-
-# Set datetime column as index
-df_sim_0.set_index('Date-time', inplace=True)
-df_sim_1.set_index('Date-time', inplace=True)
-# Mask the dataset
-df_sim_0_masked = masker(df_sim_0, beg_date, end_date)
-df_sim_1_masked = masker(df_sim_1, beg_date, end_date)
-
-
-# Read ensemble of simulated discharge
-df_sim = readNWMoutput_csv_ensemble(sim_data_dir)
-# Mask the dataset
-df_sim_masked = masker(df_sim, beg_date, end_date)
+dict = metadataDict(files_list, 'Route_link.nc')
+db_sim = frxstFilestoDFs(files_list)
 
 
+df_sim_masked = []
+for i, USGS_id in enumerate(USGS_id_list):
+    # Reformat the datetime
+    db_sim[i]['Date-time'] = pd.to_datetime(db_sim[i]['Date-time'], format='%Y-%m-%d %H:%M')
+    # Set datetime column as index
+    db_sim[i].set_index('Date-time', inplace=True)
+    # Mask the dataset
+    df_sim_masked.append(masker(db_sim[i], beg_date, end_date))
 
 # # --------------------------------------------------------------------------------------------------
 # # ---------------------- Calculate and Report the goodness of fit metrics --------------------------
 # # --------------------------------------------------------------------------------------------------
-# TODO: check R_squared, also I assumed that we have only 4 runs
-for Runnumber in Runnumbers:
-    report_perfomance_metrics(df_sim_masked['discharge_cfs_Run_{}'.format(Runnumber)], df_obs_masked['Discharge'],
-                              'C:/Users/Iman/Desktop/', runnumber=Runnumber)
+# TODO: Convert to functions + handle missing data much better
+for i, USGS_id in enumerate(USGS_id_list):
+    for j in range(0, len(dict)):
+        # report_perfomance_metrics(df_sim_masked['Q_cms_Run_{}'.format(Runnumber)], df_obs_masked['Q_cms'],
+        #                           'C:/Users/Iman/Desktop/', runnumber=Runnumber)
+
+        report_perfomance_metrics(df_sim_masked[i][dict[files_list[j]]], df_obs_masked[i]['Q_cms'],
+                                  'C:/Users/Iman/Desktop/' + 'perfmetr_' + str(USGS_id) + '.csv',
+                                  dict[files_list[j]], runnumber=j+1)
 
 # --------------------------------------------------------------------------------------------------
 # -------------------------------------- PLOT ------------------------------------------------------
 # --------------------------------------------------------------------------------------------------
-# TODO: if needed the plot part will be converted to function to better visualize Ensemble output
+# TODO: Convert to functions
+for i, USGS_id in enumerate(USGS_id_list):
 
-fig, (ax1) = plt.subplots(nrows = 1, ncols = 1)
-# IMPORTANT! Fake data!
-for Runnumber in Runnumbers:
-    ax1.plot(df_sim_masked['discharge_cfs_Run_{}'.format(Runnumber)]*(Runnumber/4.0), linewidth=0.5, marker="None", label='Sim_{}'.format(Runnumber), alpha=0.6)
+    fig, (ax1) = plt.subplots(nrows = 1, ncols = 1)
+    for j in range(0, len(dict)):
+         ax1.plot(df_sim_masked[i][dict[files_list[j]]], linewidth=0.5, label='Sim_{}'.format(dict[files_list[j]]), marker="None", alpha=0.6)
 
-# Important: Fake mean
-ax1.plot(df_sim_masked['discharge_cfs_Run_1']*1.2/2.0, c='g', linestyle='dashdot', linewidth=1.5, marker="None", label='Sim_Mean', alpha=0.9)
-# Observed data
-ax1.plot(df_obs_masked['Discharge'], c='B', linestyle='dashed', linewidth=1.5, marker="None",label='Observed', alpha=0.9)
+    # Observed data
+    ax1.plot(df_obs_masked[i]['Q_cms'], c='B', linestyle='dashed', linewidth=1, marker="None",label='Observed', alpha=0.9)
 
-# Get current axes
-ax = plt.gca()
-#  set the x and y-axis labels
-ax.set_ylabel('Discharge (cfs)', fontsize=8)
-ax.set_xlabel('Date', fontsize=8)
-# # set the x and y-axis limits
-# ax.set_xlim([df_obs_masked.index[-2]-datetime.timedelta(hours=5), datetime.timedelta(minutes=10) + df_obs_masked.index[-2]])
-# ax.set_ylim([0, 10000])
-ax.grid(True)
-plt.tick_params(labelsize=6)
-# Add a title
-# plt.title('Plot!', fontsize=12)
-#  Add a legend with some customizations
-# legend = ax.legend(loc='upper right', shadow=True, fontsize=14)
-plt.legend(loc='best', fontsize=6)
-fig.set_size_inches(30, 20)
-fig.savefig('C:/Users/Iman/Desktop/Hydrograph.png', dpi=200)
-plt.show()
+    # Get current axes
+    ax = plt.gca()
+    #  set the x and y-axis labels
+    ax.set_ylabel('Discharge (cms)', fontsize=8)
+    ax.set_xlabel('Date', fontsize=8)
+    # # set the x and y-axis limits
+    # ax.set_xlim([df_obs_masked.index[-2]-datetime.timedelta(hours=5), datetime.timedelta(minutes=10) + df_obs_masked.index[-2]])
+    # ax.set_ylim([0, 10000])
+    ax.grid(True)
+    plt.tick_params(labelsize=6)
+    # Add a title
+    # plt.title('Plot!', fontsize=12)
+    #  Add a legend with some customizations
+    # legend = ax.legend(loc='upper right', shadow=True, fontsize=14)
+    plt.legend(loc='best', fontsize=6)
+    fig.set_size_inches(30, 20)
+    fig.savefig('C:/Users/Iman/Desktop/' + 'Hydrograph_USGS_' + str(USGS_id) + '.png', dpi=200)
+    plt.show()
