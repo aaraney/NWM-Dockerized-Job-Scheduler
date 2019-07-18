@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from os.path import realpath
 sys.path.append(realpath('../'))
 from Validation import frxstFilestoDFs
+from metadataHandler import *
 
 files_list = [
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-5-session-674/frxst_pts_out.txt',
@@ -32,13 +33,9 @@ files_list = [
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-10-session-674/frxst_pts_out.txt'
 ]
 
-files_list = list(map(lambda x: realpath, files_list))
+files_list = list(map(realpath, files_list))
 
-df = frxstFilestoDFs(files_list)
-
-dfa = df[0]
-plt.plot(dfa.iloc[:,0], dfa.iloc[:,1])
-plt.show()
+df = frxstFilestoDFs(files_list, 'Route_link.nc')
 
 def plotEnsemble(df):
     '''
@@ -47,10 +44,14 @@ def plotEnsemble(df):
 
     Returns a matplotlib object
     '''
-    dates = df.iloc[:,0]
+    dates = df.iloc[:, 0]
     width = len(df.columns)
+    fig_size = plt.rcParams["figure.figsize"]
 
-    for i in range(1, width):
+    for i in range(2, width):
         plt.plot(dates, df.iloc[:, i])
-
+    plt.rcParams["figure.figsize"] = [12,9]
     plt.show()
+
+
+plotEnsemble(df[0])

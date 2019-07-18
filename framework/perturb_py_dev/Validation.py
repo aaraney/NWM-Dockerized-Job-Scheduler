@@ -167,8 +167,7 @@ def frxstFilestoDFs(frxst_files, metadataFileType='Route_link.nc'):
     try:
         for i, file in enumerate(frxst_files[1:]):
             # join dataframe with columns date, NHDPlus link, and Q in cms
-            # TODO: So, there is no problem, however col 1 is the NHDplus link number
-            df = pd.read_csv(file, header=None, names=[metaDict[frxst_files[i]]], sep=',',
+            df = pd.read_csv(file, header=None, names=[metaDict[frxst_files[i+1]]], sep=',',
                              parse_dates=False, index_col=None, usecols=[5])
             joined_df = pd.concat([joined_df, df], axis=1)
     except:
