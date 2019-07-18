@@ -5,7 +5,6 @@ sys.path.append(realpath('../'))
 from Validation import frxstFilestoDFs
 
 files_list = [
-<<<<<<< HEAD:framework/perturb_py_dev/val_test.py
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-5-session-674/frxst_pts_out.txt',
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-17-session-674/frxst_pts_out.txt',
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-9-session-674/frxst_pts_out.txt',
@@ -30,12 +29,12 @@ files_list = [
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-19-session-674/frxst_pts_out.txt',
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-2-session-674/frxst_pts_out.txt',
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-22-session-674/frxst_pts_out.txt',
-'/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-10-session-674/frxst_pts_out.txt',
+'/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-10-session-674/frxst_pts_out.txt'
 ]
 
 files_list = list(map(lambda x: realpath, files_list))
 
-df = readNWMoutput_csv_ensemble(files_list)
+df = frxstFilestoDFs(files_list)
 
 dfa = df[0]
 plt.plot(dfa.iloc[:,0], dfa.iloc[:,1])
