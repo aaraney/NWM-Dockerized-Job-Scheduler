@@ -31,7 +31,7 @@ def metadataDict(filePathList, metadataFileType):
     for i, path in enumerate(metadataPathList):
         metadata = xr.open_dataset(path).attrs['Edits_made']
         # regex to match (<param-name>, <value>)
-        match = re.findall('Para.(\S*\sscaled).*(\d+\.\d*)', metadata)[0]
+        match = re.findall('p:.([A-z]*)-(.)-(\d*.\d*)', metadata)[0]
         # iterate over metdata files e.g Route_link.nc and get pair
         # associated metadata with input e.g frxst_out.txt file in dict
         metaDict[filePathList[i]] = ': '.join(match)
