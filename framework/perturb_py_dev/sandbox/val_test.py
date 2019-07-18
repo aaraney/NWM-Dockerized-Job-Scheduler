@@ -1,10 +1,11 @@
 import sys
 from matplotlib import pyplot as plt
 from os.path import realpath
-sys.path.append(realpath('.'))
-from Validation import readNWMoutput_csv_ensemble
+sys.path.append(realpath('../'))
+from Validation import frxstFilestoDFs
 
 files_list = [
+<<<<<<< HEAD:framework/perturb_py_dev/val_test.py
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-5-session-674/frxst_pts_out.txt',
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-17-session-674/frxst_pts_out.txt',
 '/Users/austinraney/Box Sync/si/nwm/runs/pocono/replica-9-session-674/frxst_pts_out.txt',
