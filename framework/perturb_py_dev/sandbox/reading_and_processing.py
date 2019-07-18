@@ -58,7 +58,6 @@ files_list = list(map(realpath, files_list))
 dict = metadataDict(files_list, 'Route_link.nc')
 db_sim = frxstFilestoDFs(files_list)
 
-
 df_sim_masked = []
 for i, USGS_id in enumerate(USGS_id_list):
     # Reformat the datetime
