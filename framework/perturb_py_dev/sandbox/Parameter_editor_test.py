@@ -3,7 +3,7 @@ from os.path import realpath
 sys.path.append(realpath('../'))
 from Parameter_editor import *
 
-Filename = r'C:\Users\Iman\Desktop\example_case\NWM\DOMAIN_DEFAULT\Route_Link.nc'
+Filename = r'C:\Users\Iman\Desktop\rep-0-sesh-190718-192930\DOMAIN\Route_Link.nc'
 outputpath = r'C:\Users\Iman\Desktop\Route_Link'
 
 
@@ -31,6 +31,9 @@ problem = {
 scales_list_of_lists = (np.round(latin.sample(problem, 25), len(params_list))).tolist()
 
 
+scales_list_of_lists = [[0.0001], [0.500], [1.000], [1.300], [1.600]]
+
+#
 for scales_list in scales_list_of_lists:
     ds1, outputpath_final = para_editor_evenly_scaler_multi_para(Filename, outputpath, params_list, scales_list)
 
