@@ -10,15 +10,17 @@ import pandas as pd
 # --------------------------------------------------------------------------------------------------
 # NHD+: 4185779 = USGS 01447720 ||||||| NHD+: 44185837 USGS 01447680
 # for plotting and performance metrics
-beg_date = '2018-03-19 01:00:00'
+beg_date = '2018-01-01 02:00:00'
 end_date = '2018-06-30 00:00:00'
 
+# Working diretory for input/output (excepet for simulated runs)
+working_dir = 'C:/Users/Iman/Desktop/'
 # -------------------------------- Handling observed data -----------------------------------------
 USGS_id_list = ['01447720', '01447680']
 
 # Directory to observed data
-obs_data_dir_list = ['C:/Users/Iman/Desktop/' + USGS_id_list[0] + '_00060.txt',
-                     'C:/Users/Iman/Desktop/' + USGS_id_list[1] + '_00060.txt']
+obs_data_dir_list = [working_dir + USGS_id_list[0] + '_00060.txt',
+                     working_dir + USGS_id_list[1] + '_00060.txt']
 
 # Download the USGS data
 for i, USGS_id in enumerate(USGS_id_list):
@@ -36,22 +38,50 @@ for i, USGS_id in enumerate(USGS_id_list):
     df_obs[i] = LocaltoUTC(df_obs[i])
     # Set datetime column as index
     df_obs[i].set_index('Date-time', inplace=True)
-    # Donwsample the observed data
+    # Downsample the observed data
     df_obs_downsampled.append(downsampler(df_obs[i]))
+
+    df_obs_downsampled[i] = df_obs_downsampled[i].interpolate(method='linear')
     # Mask the dataset
     df_obs_masked.append(masker(df_obs_downsampled[i], beg_date, end_date))
 
 # -------------------------------- Handling simulated data -----------------------------------------
+# files_list = [
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-1-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-2-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-3-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-4-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-5-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-6-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-7-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-8-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-9-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-10-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-11-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-12-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-13-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-14-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-15-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-16-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-17-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-18-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-19-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-20-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-21-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-22-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-23-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-24-sesh-190718-192930/frxst_pts_out.txt',
+# 'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-25-sesh-190718-192930/frxst_pts_out.txt'
+# ]
+
+
+
 files_list = [
-'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-18-sesh-190718-192930/frxst_pts_out.txt',
-'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-19-sesh-190718-192930/frxst_pts_out.txt',
-'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-20-sesh-190718-192930/frxst_pts_out.txt',
-'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-21-sesh-190718-192930/frxst_pts_out.txt',
-'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-22-sesh-190718-192930/frxst_pts_out.txt',
-'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-23-sesh-190718-192930/frxst_pts_out.txt',
-'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-24-sesh-190718-192930/frxst_pts_out.txt',
-'F:/Volumes/nwm_runs/pocono_010118-063018/frxst_out/rep-25-sesh-190718-192930/frxst_pts_out.txt'
+'F:/Volumes/nwm_runs/pocono_extreme_case/frxst_out/rep-0-sesh-190718-224259/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_extreme_case/frxst_out/rep-1-sesh-190718-224259/frxst_pts_out.txt',
+'F:/Volumes/nwm_runs/pocono_extreme_case/frxst_out/rep-2-sesh-190718-224259/frxst_pts_out.txt',
 ]
+
 
 files_list = list(map(realpath, files_list))
 
@@ -73,22 +103,22 @@ for i, USGS_id in enumerate(USGS_id_list):
 # TODO: Convert to functions + handle missing data much better
 for i, USGS_id in enumerate(USGS_id_list):
     for j in range(0, len(dict)):
-        # report_perfomance_metrics(df_sim_masked['Q_cms_Run_{}'.format(Runnumber)], df_obs_masked['Q_cms'],
-        #                           'C:/Users/Iman/Desktop/', runnumber=Runnumber)
-
         report_perfomance_metrics(df_sim_masked[i][dict[files_list[j]]], df_obs_masked[i]['Q_cms'],
-                                  'C:/Users/Iman/Desktop/' + 'perfmetr_' + str(USGS_id) + '.csv',
+                                  working_dir + 'perfmetr_' + str(USGS_id) + '.csv',
                                   dict[files_list[j]], runnumber=j+1)
 
 # --------------------------------------------------------------------------------------------------
 # -------------------------------------- PLOT ------------------------------------------------------
 # --------------------------------------------------------------------------------------------------
+
+color_list = ['m', 'b', 'g', 'r', 'y', 'k']
+
 # TODO: Convert to functions
 for i, USGS_id in enumerate(USGS_id_list):
 
     fig, (ax1) = plt.subplots(nrows = 1, ncols = 1)
     for j in range(0, len(dict)):
-         ax1.plot(df_sim_masked[i][dict[files_list[j]]], linewidth=0.5, label='Sim_{}'.format(dict[files_list[j]]), marker="None", alpha=0.6)
+         ax1.plot(df_sim_masked[i][dict[files_list[j]]], linewidth=0.75, c=color_list[j], label='Sim_{}'.format(dict[files_list[j]]), marker="None", alpha=0.6)
 
     # Observed data
     ax1.plot(df_obs_masked[i]['Q_cms'], c='B', linestyle='dashed', linewidth=1, marker="None",label='Observed', alpha=0.9)
@@ -109,5 +139,5 @@ for i, USGS_id in enumerate(USGS_id_list):
     # legend = ax.legend(loc='upper right', shadow=True, fontsize=14)
     plt.legend(loc='best', fontsize=6)
     fig.set_size_inches(30, 20)
-    fig.savefig('C:/Users/Iman/Desktop/' + 'Hydrograph_USGS_' + str(USGS_id) + '.png', dpi=200)
+    fig.savefig(working_dir + 'Hydrograph_USGS_' + str(USGS_id) + '.png', dpi=200)
     plt.show()
