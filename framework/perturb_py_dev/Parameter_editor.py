@@ -7,6 +7,11 @@ from SALib.sample import latin
 # ---------------------------------  functions -----------------------------------------------------
 # --------------------------------------------------------------------------------------------------
 # Function to modify the input files in the netcdf file
+def DAfromTopWdth(TopWdth):
+    return (TopWdth/2.44) ** 2.941176470588235
+
+def CSA(DA):
+    return 0.75 * DA ** 0.53
 
 def cross_section_area_BlckBrn(TopWdth):
     '''(Top Width of Trapezoidal Channel)'''
@@ -32,7 +37,7 @@ def para_editor_evenly_scaler(ds, para_name, scale):
 
 
     ds[para_name][:] *= scale  # Modify the parameter
-    ds.attrs['Edits_made'] += metadata_string(para_name, '*', scale) # Modify the MetaData
+    ds.attrs['Edits_made'] = metadata_string(para_name, '*', scale) # Modify the MetaData
 
     # !!!Be advised: should better define the cs_area, currently, it is a xarray dataframe and the variable name is
     # not correct...but it works!
@@ -50,11 +55,13 @@ def para_editor_evenly_scaler(ds, para_name, scale):
 
 
     if para_name == 'BtmWdth':
-        #  Following 2 equations are from Blackburn et al.
+        # Following 2 equations are from Blackburn et al.
+        # The calculation of updated Channel slope IS NOT consistent
+        # with current manuscripts, however it is correct despite not being
+        # documented correctly in Wrf-Hydro documentation.
         cs_area = cross_section_area_BlckBrn(ds['TopWdth'][:])
-        ds['ChSlp'][:] = (ds['TopWdth'][:] ** 2 - ds['BtmWdth'][:] ** 2) / (4.0 * cs_area)
+        ds['ChSlp'][:] = 1/((ds['TopWdth'][:] ** 2 - ds['BtmWdth'][:] ** 2) / (4.0 * cs_area))
 
-        # ds.attrs['Edits_made'] += ' ** Also, param ' + 'ChSlp' + ' was changed as dependent para '  # Modify the MetaData
         # TODO: Might need to add for dependent parameter case?
         ds.attrs['Edits_made'] += metadata_string('ChSlp', '', '', key='d')
 
