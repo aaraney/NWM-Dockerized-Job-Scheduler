@@ -4,5 +4,4 @@ sys.path.append('/Users/austinraney/github/si/framework/JobScheduler')
 from scheduler import *
 
 schedule = Scheduler.fromYaml('djs_setup.yml')
-# print(schedule)
 schedule.startJobs()
