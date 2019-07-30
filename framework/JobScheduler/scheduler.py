@@ -12,21 +12,18 @@ import docker
 from job import Job
 from domainsetup import *
 
-# TODO:
-# Problem list:
-# 1. CPU's and MAX_JOBS not well implemented at the moment
-
 
 class Scheduler:
     # TODO: add doc string
 
     def __init__(self, docker_client=None):
-        if not docker_client:
-            self.docker_client = docker.from_env()
-        else:
+        if docker_client:
             self.docker_client = docker_client
+        else:
+            # Set to system docker if one is not provided
+            self.checkHeartBeat()
+            self.docker_client = docker.from_env()
 
-        self.checkHeartBeat()
 
         # unique session id for each run of scheduler
         # uses UTC time. this is appended to replica dir names
@@ -36,7 +33,7 @@ class Scheduler:
         self.runningContainerDict = {}
         self._jobQ = queue.deque()
 
-        self._image_tag = 'aaraney/nwm-run-env:2.0'
+        self._image_tag = 'aaraney/nwm-djs:2.0'
         # Max jobs is the max number of jobs
         # running at any given time
         # TODO: Find information from system to inform this
@@ -44,7 +41,13 @@ class Scheduler:
 
         # Max cps is the max number of cpus
         # running at any given time
-        self._MAX_CPUS = 1
+        # see docker python api for help with syntax
+        # https://docker-py.readthedocs.io/en/stable/containers.html
+        self._MAX_CPUS = '0-1'
+
+        # MPI np is the number of mpi processes
+        # that each container will be allotted
+        self._MPI_NP = 2
 
     @classmethod
     def fromList(cls, primary_dir, alt_domain_list):
@@ -68,10 +71,67 @@ class Scheduler:
             scheduler.enqueue(job)
         return scheduler
 
+    @classmethod
+    def fromYaml(cls, yaml_file):
+        '''
+        Fills job queue from a provided yaml file
+
+        Note: Absolute and relative paths are accepted
+        Required keys and values for yaml file(these are case sensitive)
+
+        primary: '/path/to/your/primary/'
+        alternative-files:
+            - '/path/to/alt/file'
+            - '/path/to/alt/file'
+
+        Optional key value pairs
+        image: 'docker/image' default aaraney/nwm-djs:2.0
+        max-jobs: <int> (e.g., 3) default 2
+        cpus: <str> (e.g., '0-4') default '0-1'
+        mpi-np: <int> (e.g., 3) default 2
+
+        NOTE:
+            Currently model runs are only supported that
+            have a single changed domain files per run.
+        '''
+        import yaml
+
+        scheduler = cls()
+
+        # Load the yaml file into dictionary
+        with open(yaml_file) as fn:
+            yml_obj = yaml.safe_load(fn)
+
+        try:
+            primary_dir = yml_obj['primary']
+            alt_domain_list = yml_obj['alternative-files']
+
+            # Get full system paths for primary domain and alt domain files
+            primary_dir = realpath(primary_dir)
+            alt_domain_list = list(map(lambda f: realpath(f), alt_domain_list))
+        except KeyError:
+            raise KeyError
+
+        # Set class property if provided in yaml
+        optional_keys = {'cpus':'scheduler.max_cpus', 'image':'scheduler.image_tag',
+                         'max-jobs':'scheduler.max_jobs', 'mpi-np':'scheduler.mpi_np'
+                         }
+        for item in optional_keys.keys():
+            if item in yml_obj:
+                # Set property value of schedule object using dictionary of optional keys
+                exec('{} = "{}"'.format(optional_keys[item], yml_obj[item]))
+
+        for i, file in enumerate(alt_domain_list):
+            replica_mnt_point = join(dirname(primary_dir), 'rep-{}-sesh-{}'.format(i, scheduler.schedule_id))
+            job = Job(replica_mnt_point, primary_dir, file)
+            scheduler.enqueue(job)
+
+        return scheduler
+
     def __str__(self):
         # Embarrassing implementation
         # TODO: Make the readable
-        return str(list(map(lambda x: print('{}\n'.format(x)), list(self._jobQ))))
+        return 'mpi-np: {}\n {}'.format(self.mpi_np, str(list(map(lambda x: print('{}\n'.format(x)), list(self._jobQ)))))
 
     @property
     def client_list(self):
@@ -82,18 +142,25 @@ class Scheduler:
         return self._jobQ
 
     @property
-    def MAX_JOBS(self):
+    def max_jobs(self):
         return self._MAX_JOBS
-    @MAX_JOBS.setter
-    def MAX_JOBS(self, max_jobs):
-        self._MAX_JOBS = max_jobs
+    @max_jobs.setter
+    def max_jobs(self, max_jobs):
+        self._MAX_JOBS = int(max_jobs)
 
     @property
-    def MAX_CPUS(self):
+    def max_cpus(self):
         return self._MAX_CPUS
-    @MAX_CPUS.setter
-    def MAX_CPUS(self, max_cpus):
+    @max_cpus.setter
+    def max_cpus(self, max_cpus):
         self._MAX_CPUS = max_cpus
+
+    @property
+    def mpi_np(self):
+        return self._MPI_NP
+    @mpi_np.setter
+    def mpi_np(self, n_processes):
+        self._MPI_NP = int(n_processes)
 
     @property
     def image_tag(self):
@@ -113,12 +180,10 @@ class Scheduler:
         # However, see https://docker-py.readthedocs.io/en/stable/client.html
         # to implement a remote docker server
         try:
-            docker_client = docker.from_env()
             # Check for a heartbeat
-            docker_client.ping()
-        except ConnectionError:
-            print("Please check that the Docker Daemon is running.")
-            exit(1)
+            docker.from_env().ping()
+        except:
+            raise ConnectionError("Please check that the Docker Daemon is installed and running.")
 
     def check_for_image(self, image_tag):
         # Check if user has specified container pulled
@@ -131,10 +196,12 @@ class Scheduler:
 
     def runJob(self, job, image_tag, cpuset):
         volumes = {
-            job.replica_mnt_point : {'bind': '/slave',
+            job.replica_mnt_point : {'bind': '/replica',
                      'mode': 'rw'}
         }
-        job.container_id = self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True, remove=True, volumes=volumes)
+        job.container_id = self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True,
+                                                             entrypoint='run.sh {}'.format(self.mpi_np), remove=True,
+                                                             volumes=volumes)
         return job
 
     def enqueue(self, job):
@@ -161,32 +228,21 @@ class Scheduler:
 
     def startJobs(self):
         # TODO: add docstring and implement metadata database
+        # TODO: add in something for tracking jobs?
         '''
+        Using the set max jobs and max cpus spawn docker containers
+        until the queue has been exhausted.
         '''
         # Check for number of running containers if greater than allotted
         if len(self.docker_client.containers.list()) > self._MAX_JOBS:
-            raise Exception('System already at set MAX_JOBS quota.')
+            raise Exception('System already has too many running containers. '
+                            'Either kill containers or adjust the max_jobs '
+                            'attribute.')
         running_containers_list = self.docker_client.containers.list()
 
         while len(self._jobQ) != 0:
             if len(running_containers_list) < self._MAX_JOBS:
                 job = self._jobQ.pop()
                 self.setupJob(job)
-                running_job = self.runJob(job, self.image_tag, '0-3')
+                running_job = self.runJob(job, self.image_tag, self._MAX_CPUS)
             running_containers_list = self.docker_client.containers.list()
-
-if __name__=='__main__':
-    from os.path import realpath
-    primary_path = realpath('../pocono_test_case')
-    altered_domain_files = [
-        "../pocono_test_case/Route_Link.nc",
-        "../pocono_test_case/Route_Link_1.nc",
-        "../pocono_test_case/Route_Link_2.nc",
-        "../pocono_test_case/Route_Link_3.nc",
-        "../pocono_test_case/Route_Link_4.nc"
-    ]
-    # Map full path name to altered domain files
-    altered_domain_files = map(lambda f: realpath(f), altered_domain_files)
-    schedule = Scheduler.fromList(primary_path, altered_domain_files)
-    schedule.startJobs()
-

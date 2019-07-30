@@ -1,0 +1,11 @@
+primary: 'primary'
+alternative-files:
+  - 'Route_Link.nc'
+  - 'Route_Link_1.nc'
+  - 'Route_Link_2.nc'
+  - 'Route_Link_3.nc'
+  - 'Route_Link_4.nc'
+image: 'aaraney/nwm-djs:2.0'
+max-jobs: 2
+cpus: '0-2'
+mpi-np: 2

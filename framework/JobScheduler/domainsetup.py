@@ -6,7 +6,6 @@ from glob import glob
 
 # Local import
 from filehandler import identifyDomainFile
-# TODO: Overall cleanup of this module. Comments might not make sense anymore
 def cleanUp(job):
     '''
     Remove forcings and restarts
@@ -33,7 +32,7 @@ def __link(dest_dir, *src_files):
         src_files_dict = src_files[0]
         # for common name (i.e. Fulldom_hires.nc), source path
         for common_name, src in src_files_dict.items():
-           # link master to slave with correct common name
+           # link primary to replica with correct common name
             link(realpath(src), join(dest_dir, common_name))
 
     else:
@@ -51,18 +50,17 @@ def __link(dest_dir, *src_files):
                 remove(join(dest_dir, basename(item)))
             __link(dest_dir, *src_files)
 
-# TODO: change master to primary
-def populateDomainFiles(master_dir, alt_domain_list):
+def populateDomainFiles(primary_dir, alt_domain_list):
     '''
     :returns dict of domain files to be linked to
-    slave directory. Accounts for differences in files names
-    and replaces master domain files with the correct alternative
+    replica directory. Accounts for differences in files names
+    and replaces primary domain files with the correct alternative
     ones
     '''
     if not type(alt_domain_list) is list:
         alt_domain_list = [alt_domain_list]
-    # set of master domain files
-    master_domain_files = list(glob(join(master_dir, 'DOMAIN/*.nc')))
+    # set of primary domain files
+    primary_domain_files = list(glob(join(primary_dir, 'DOMAIN/*.nc')))
 
     # Dictionary of key = Common name convention (i.e. 'Fulldom_hires.nc')
     # and value = source of the file
@@ -70,22 +68,23 @@ def populateDomainFiles(master_dir, alt_domain_list):
     # is explicitly linked, meaning the input filename
     # does matter, unlike the other files
     # See filehandler.py for a better understanding
-    master_domain_dict = {}
-    for src in master_domain_files:
+    primary_domain_dict = {}
+    for src in primary_domain_files:
         common_name = identifyDomainFile(src)
-        master_domain_dict[common_name] = src
+        primary_domain_dict[common_name] = src
 
     # Replace source src location of default domain files
     # with the location of alternative domain files
     for alt_src in alt_domain_list:
         common_name = identifyDomainFile(alt_src)
-        master_domain_dict[common_name] = alt_src
+        primary_domain_dict[common_name] = alt_src
 
-    return master_domain_dict
+    return primary_domain_dict
+
 
 def setupModel(job):
     '''
-    Create symbolic link of master DOMAIN, TBL,
+    Create symbolic link of primary DOMAIN, TBL,
     wrf_hydro.exe files to slave_dir. Alt_domain
     files from alt_domain_list replace default
     domain files.
@@ -98,9 +97,9 @@ def setupModel(job):
     replica_dir = job.replica_mnt_point
     alt_domain_list = job.alt_domain_list
 
-    # Check if DOMAIN and FORCING exist in master directory
+    # Check if DOMAIN and FORCING exist in primary directory
     if not isdir(join(primary_dir, 'DOMAIN')) and not isdir(join(primary_dir, 'FORCING')):
-        raise Exception('DOMAIN or FORCING directory not present in master directory')
+        raise Exception('DOMAIN or FORCING directory not present in primary directory')
 
     # Create dirs
     makedirs(replica_dir, exist_ok=True)
