@@ -72,7 +72,7 @@ def downloadusgsdata(File_name, site_number, parameter_id, start_date, end_date,
     r = requests.get(url)
 
     # Checks if save_file option is enabled
-    if save_file == True:
+    if save_file:
         # Saves data in text file
         with open(File_name, 'w') as f:
             f.write(r.text)
@@ -83,7 +83,7 @@ def downloadusgsdata(File_name, site_number, parameter_id, start_date, end_date,
     # print("<<Warning: File not saved>>")
 
     # Checks if output_vec option is enabled
-    if output_vec == True:
+    if output_vec:
         # function returns data vector
         # print("<<Warning: output vector enabled>>")
         return r.text
