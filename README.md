@@ -3,7 +3,7 @@
 We developed a generalized framework to efficiently generate performance based NWM ensemble outputs. The framework uses a pseudo random Latin hypercube approach to scale channel parameters, utilizes Docker to deploy and manage asynchronous NWM containers, and creates a weighted average ensemble output based on a rank system. These three tasks have been coded with modularity in mind, these three units have been named, the perturbation engine, the dockerized job scheduler (DJS), and the ensemble generator.
 
 ## Pocono Test Case
-Easily use our framework using [this](https://github.com/aaraney/NWM-Docker-Ensemble-Framework/tree/master/pocono_test_case) test case.
+Easily use our framework using [this](https://github.com/aaraney/NWM-Docker-Ensemble-Framework/tree/master/pocono_test_case/) test case.
 
 ## Updates:
 ### 7/30/19
@@ -13,7 +13,7 @@ Easily use our framework using [this](https://github.com/aaraney/NWM-Docker-Ense
 - The prior test case was moved to a new script implementation, `list_run.py` where the properties for adjusting containers are showcased.
 
 #### DJS:
-- A new class method `fromYaml` was implemented in the Scheduler. This allows for a user to interface with DJS in a new way. Find the details of these changes at the bottom of this comment.
+- A new class method `fromYaml` was implemented in the Scheduler. This allows for a user to interface with DJS in a new way. Find the details of these changes [here](./pocono_test_case/README.md). 
 - DJS docker containers can now more easily be controlled with the class properties: image_tag, max_jobs, max_cpus, and mpi_np
 
 #### Docker
