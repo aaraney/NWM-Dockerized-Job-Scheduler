@@ -27,4 +27,4 @@ scalars. Please find the hydroshare resource [here](https://www.hydroshare.org/r
 - Added completed year run of NWM v2 in the Sipsey Wilderness to
   hydroshare. See it [here](https://www.hydroshare.org/resource/0e015316da5b429fb6652d403e6decbe/)
 
-Contributors: Austin Raney, Iman Maghami, Yenchia Feng
+Contributors: [Austin Raney](mailto:aaraney@crimson.ua.edu), [Iman Maghami](mailto:im3vp@virginia.edu), [Yenchia Feng](mailto:yenchia@stanford.edu)
