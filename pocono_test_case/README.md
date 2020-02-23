@@ -11,6 +11,14 @@ and list_run.py.
 - Docker
 - Python 3
 - Docker Python SDK
+	
+#### Optional:
+- Conda
+	- Install required packages:
+	1. `conda create -n djs python=3.7`
+	1. `conda activate djs`
+	1. pip install -r requirements.txt
+
 
 ## How to Run
 1. Open Docker Preferences, select advanced. Consider increasing the
@@ -21,8 +29,8 @@ changed.
 1. `git clone https://github.com/aaraney/NWM-Docker-Ensemble-Framework.git NWM-Docker-Ensemble-Framework`
 1. `cd NWM-Docker-Ensemble-Framework/pocono_test_case`
 1. Two options to run DJS
-    - 'time python3 yml_run.py'
-    - 'time python3 list_run.py'
+    - 'python3 yml_run.py'
+    - 'python3 list_run.py'
 
 ### Options
 Currently a CLI has not been implemented to wrap runtime
