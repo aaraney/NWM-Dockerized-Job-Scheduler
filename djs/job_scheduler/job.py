@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-# Author: Austin Raney
-# Email: aaraney@crimson.ua.edu
-# Date: 7/3/19
-
 from os.path import realpath
 
 
