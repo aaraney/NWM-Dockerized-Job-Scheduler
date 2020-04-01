@@ -18,8 +18,7 @@ setup(
     # Package version and information
     name='djs',
     version='0.1',
-    package_dir={'' : 'djs'},
-    packages=find_packages(where='djs', exclude=['*test*']),
+    packages=find_packages(exclude=['*test*']),
     url='https://github.com/aaraney/NWM-Docker-Ensemble-Framework',
 
     # Package description information
