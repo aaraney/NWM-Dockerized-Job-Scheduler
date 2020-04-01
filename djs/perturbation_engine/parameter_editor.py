@@ -6,9 +6,10 @@ import operator
 
 # Local package imports 
 # TODO: Change to package path once refracted
-import sys
-sys.path.append('/Users/austinraney/github/si/framework/')
-from JobScheduler.filehandler import identifyDomainFile
+# import sys
+# sys.path.append('/Users/austinraney/github/si/framework/')
+# This still needs to be tested
+from djs.job_scheduler.filehandler import identifyDomainFile
 
 def load_parameter_file(fn):
     '''
@@ -246,18 +247,3 @@ def edit_parameters(fn, parameters, operators, values):
 #         ds.attrs['Edits_made'] += ' ** Also, param ' + 'ChSlp' + ' was changed as dependent para '  # Modify the MetaData
 
 #     return ds
-
-if __name__ == "__main__":
-    import sys
-    sys.path.append('/Users/austinraney/github/si/framework/')
-    from JobScheduler import filehandler
-
-    # Test _apply_functions
-    # TODO: Remove and add to test
-    route_link = '/Users/austinraney/Box Sync/si/nwm/domains/031601_domain1_nwm_cutout/Route_Link.nc'
-    parameters = ['n', 'n']
-    operators = ['^', '+']
-    values = [1, 2]
-
-    df_0 = xr.open_dataset(route_link)
-    df = edit_parameters(route_link, parameters, operators, values)
