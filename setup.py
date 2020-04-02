@@ -21,6 +21,11 @@ setup(
     packages=find_packages(exclude=['*test*']),
     url='https://github.com/aaraney/NWM-Docker-Ensemble-Framework',
 
+    # Set entry point for CLI
+    entry_points= {
+        'console_scripts' : ['djs=djs.cli.djs:main'],
+        },
+
     # Package description information
     description='A framework for varying model parameters and automating concurrent usage of the Wrf-hydro/National Water Model using Docker',
     long_description=long_description,
@@ -29,7 +34,6 @@ setup(
     # Author information
     author='Austin Raney',
     author_email='aaraney@crimson.ua.edu',
-
 
     license='MIT License',
 

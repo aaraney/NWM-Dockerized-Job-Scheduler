@@ -12,11 +12,19 @@ from djs.perturbation_engine import parameter_editor
 
 # djs CLI, top most click.group()
 @click.group()
-def djs():
+def main():
+    '''
+    The Dockerized Job Scheduler (djs) is capable of automating, managing,
+    and executing numerous NWM simulations simultaneously. This framework was
+    designed with the intent of removing the overhead of model setup and
+    compilation, thereby lowering the barrier for entry without limiting
+    performance. In doing so, facilitating an environment for scientists to
+    more easily test hypotheses.
+    '''
     pass
 
 # Job Schdeuler CLI
-@djs.group()
+@main.group()
 def job_scheduler():
     from djs.job_scheduler.scheduler import Scheduler
 
@@ -41,9 +49,9 @@ def from_yaml(setup_yaml, dry_run):
         scheduler.startJobs()
 
 # Perturbation engine CLI
-@djs.command()
+@main.command()
 def perturbation_engine():
     pass
 
 if __name__ == "__main__":
-    djs()
+    main()
