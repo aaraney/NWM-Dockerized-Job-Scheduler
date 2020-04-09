@@ -3,16 +3,18 @@
 import xarray as xr
 import numpy as np
 import operator
+from typing import Union
 
 from djs.job_scheduler.filehandler import identifyDomainFile
 
-def _load_parameter_file(fn):
+def _check_parameter_validity(parameter_file: Union[str, xr.core.dataset.Dataset]):
     '''
-    Load a netcdf and check if it is a valid file for usage by the
-    perturbation engine. Return a dataframe of representation of the file if
-    it is a valid file and the parameters capible of being varried.
 
-    _load_parameter_file -> (df, {parameter names})
+    Load a netcdf or check that an existing dataset is a valid file for usage
+    by the perturbation engine. Return dataframe of representation of the
+    file if it is a valid file and the parameters capible of being varried.
+
+    _check_parameter_validity -> (df, {parameter names})
     '''
 
     # Dictionary of valid filenames using Wrf-Hydro/NWM name conventions
@@ -25,13 +27,14 @@ def _load_parameter_file(fn):
     'Fulldom_hires.nc' : {'LKSATFAC', 'OVROUGHRTFAC', 'RETDEPRTFAC'}
     }
 
+    if type(parameter_file) is str:
+        parameter_file = xr.open_dataset(parameter_file)
+
     try:
-        fn_w_nwm_naming_convention = identifyDomainFile(fn)
+        fn_w_nwm_naming_convention = identifyDomainFile(parameter_file)
         valid_params = valid_files_to_edit[fn_w_nwm_naming_convention]
 
-        df = xr.open_dataset(fn)
-
-        return( (df, valid_params) )
+        return( (parameter_file, valid_params) )
 
     # KeyError thrown by filehandler if not a valid NWM file
     except KeyError:
@@ -192,7 +195,7 @@ def edit_parameters(fn, parameters, operators, values):
     '''
 
     # Load provided files and the valid parameters to edit for that file type
-    df, valid_parameters = _load_parameter_file(fn)
+    df, valid_parameters = _check_parameter_validity(fn)
 
     parameter_operator_dict = _create_parameter_operator_dict(parameters, operators, values)
 
