@@ -4,6 +4,7 @@ import xarray as xr
 import numpy as np
 import operator
 from typing import Union
+from os.path import basename
 
 from djs.job_scheduler.filehandler import identifyDomainFile
 
@@ -38,7 +39,7 @@ def _check_parameter_validity(parameter_file: Union[str, xr.core.dataset.Dataset
 
     # KeyError thrown by filehandler if not a valid NWM file
     except KeyError:
-        raise IOError('The provided parameter file, {}, is not valid, please provide a valid WRF-Hydro/NWM parameter file'.format(fn))
+        raise IOError('The provided parameter file, {}, is not valid, please provide a valid WRF-Hydro/NWM parameter file'.format(basename(parameter_file._file_obj._filename)))
 
 def _metadata_string(parameter, op, value, key=''):
     '''
@@ -176,12 +177,12 @@ def _apply_functions(df, parameter_operator_dict):
 
     return local_df
 
-def edit_parameters(fn, parameters, operators, values):
+def edit_parameters(df, parameters, operators, values):
     '''
     Return augmented parameter dataframe
 
-    fn:
-        NWM/Wrf-Hydro parameter file
+    df:
+        NWM/Wrf-Hydro parameter file as a filename string or xarray dataset
     
     parameters:
         List of parameters to edit
@@ -194,8 +195,8 @@ def edit_parameters(fn, parameters, operators, values):
 
     '''
 
-    # Load provided files and the valid parameters to edit for that file type
-    df, valid_parameters = _check_parameter_validity(fn)
+    # Check that provided file contains valid parameters to edit for that file type
+    df, valid_parameters = _check_parameter_validity(df)
 
     parameter_operator_dict = _create_parameter_operator_dict(parameters, operators, values)
 
