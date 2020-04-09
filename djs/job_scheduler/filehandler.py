@@ -2,6 +2,7 @@
 
 import xarray as xr
 from os.path import basename
+from typing import Union
 
 '''
 This module is used to link
@@ -29,20 +30,19 @@ file_type_dict = {
 
 }
 
-def identifyDomainFile(domain_file):
+def identifyDomainFile(domain_file: Union[str, xr.core.dataset.Dataset]):
     '''
-    Return the NWM filename convention
-    of the input file.
+    Return the NWM filename convention of the input file. Accepts a filename
+    as a string or an xarray dataset dataset
     e.g.
     identifyDomainFile('Route_link123.nc) -> 'Route_link.nc'
     '''
-    domain_file_xr = xr.open_dataset(domain_file)
+    if type(domain_file) is str:
+        domain_file = xr.open_dataset(domain_file)
+
     for key in file_type_dict:
-        if key in domain_file_xr.keys():
+        if key in domain_file.keys():
             return file_type_dict[key]
-        # Explicitly return GEOGRID_LDASOUT_Spatial_Metadata.nc
-        elif basename(domain_file) == 'GEOGRID_LDASOUT_Spatial_Metadata.nc':
-            return basename(domain_file)
+
     else:
-        print('Check the validity of your domain files')
-        raise KeyError
+        raise KeyError('Check the validity of your domain files.\nNote: GEOGRID_LDASOUT_Spatial_Metadata.nc is not supported file')
