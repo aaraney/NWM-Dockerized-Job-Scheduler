@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from os.path import join, dirname
+from os.path import join, dirname, realpath
 import queue
 from datetime import datetime
 from functools import reduce
@@ -9,12 +9,17 @@ from random import randint
 import docker
 
 # Local imports
-from job import Job
-from domainsetup import *
+from .job import Job
+from .domainsetup import setupModel
 
 
-class Scheduler:
-    # TODO: add doc string
+class Scheduler(object):
+    '''
+    djs's module responsible for scheduling and spawning jobs. A queue data
+    structure is use to house jobs awaiting spawning. This Scheduler is most
+    commonly referenced through its class methods.
+
+    '''
 
     def __init__(self, docker_client=None):
         if docker_client:
@@ -219,7 +224,7 @@ class Scheduler:
     def fillJobQueue(self):
         '''
         Populate the queue with jobs to be run.
-        Slave directories for each job are not created
+        Replica directories for each job are not created
         until they are pushed out of the queue
         '''
         pass
@@ -227,12 +232,12 @@ class Scheduler:
 
 
     def startJobs(self):
-        # TODO: add docstring and implement metadata database
+        '''
+        Begin the dispersion of jobs from the job queue until the jobs queue
+        has been exhausted
+        '''
         # TODO: add in something for tracking jobs?
-        '''
-        Using the set max jobs and max cpus spawn docker containers
-        until the queue has been exhausted.
-        '''
+
         # Check for number of running containers if greater than allotted
         if len(self.docker_client.containers.list()) > self._MAX_JOBS:
             raise Exception('System already has too many running containers. '

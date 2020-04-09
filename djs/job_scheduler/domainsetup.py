@@ -5,7 +5,9 @@ from os.path import join, realpath, basename, dirname, isdir
 from glob import glob
 
 # Local import
-from filehandler import identifyDomainFile
+from .filehandler import identifyDomainFile
+
+
 def cleanUp(job):
     '''
     Remove forcings and restarts

@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 
-# Author: Austin Raney
-# Email: aaraney@crimson.ua.edu
-# Date: 7/3/19
-
 from os.path import realpath
 
 
-class Job:
+class Job(object):
     '''
     Class to hold information pertaining to nwm Docker
     container used by Scheduler.py.
