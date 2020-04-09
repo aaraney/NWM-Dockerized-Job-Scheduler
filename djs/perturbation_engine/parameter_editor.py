@@ -4,20 +4,15 @@ import xarray as xr
 import numpy as np
 import operator
 
-# Local package imports 
-# TODO: Change to package path once refracted
-# import sys
-# sys.path.append('/Users/austinraney/github/si/framework/')
-# This still needs to be tested
 from djs.job_scheduler.filehandler import identifyDomainFile
 
-def load_parameter_file(fn):
+def _load_parameter_file(fn):
     '''
     Load a netcdf and check if it is a valid file for usage by the
     perturbation engine. Return a dataframe of representation of the file if
     it is a valid file and the parameters capible of being varried.
 
-    load_parameter_file -> (df, {parameter names})
+    _load_parameter_file -> (df, {parameter names})
     '''
 
     # Dictionary of valid filenames using Wrf-Hydro/NWM name conventions
@@ -26,7 +21,7 @@ def load_parameter_file(fn):
     'Route_link.nc': {'ChSlp', 'n', 'nCC', 'TopWdth', 'TopWdthCC', 'BtmWdth'},
     'GWBUCKPARM.nc' : {'Expon', 'Zinit', 'Zmax'},
     'LAKEPARM.nc' : {'OrificeA', 'OrificeC', 'OrificeE', 'WeirC', 'WeirE', 'WeirL'},
-    'Soil_properties.nc': {'mfsno'},
+    'soil_properties.nc': {'mfsno'},
     'Fulldom_hires.nc' : {'LKSATFAC', 'OVROUGHRTFAC', 'RETDEPRTFAC'}
     }
 
@@ -42,7 +37,7 @@ def load_parameter_file(fn):
     except KeyError:
         raise IOError('The provided parameter file, {}, is not valid, please provide a valid WRF-Hydro/NWM parameter file'.format(fn))
 
-def metadata_string(parameter, op, value, key=''):
+def _metadata_string(parameter, op, value, key=''):
     '''
     Key is d, if parameter is dependent on another parameter, requiring it to also be edited
     '''
@@ -171,10 +166,10 @@ def _apply_functions(df, parameter_operator_dict):
 
             # Tag the dataframe with metadata concerning the change
             if 'perterbation_engine_edits:' in local_df.attrs:
-                local_df.attrs['perterbation_engine_edits:'] += metadata_string( parameter, str_func, value )
+                local_df.attrs['perterbation_engine_edits:'] += _metadata_string( parameter, str_func, value )
 
             else:
-                local_df.attrs['perterbation_engine_edits:'] = metadata_string( parameter, str_func, value )
+                local_df.attrs['perterbation_engine_edits:'] = _metadata_string( parameter, str_func, value )
 
     return local_df
 
@@ -197,7 +192,7 @@ def edit_parameters(fn, parameters, operators, values):
     '''
 
     # Load provided files and the valid parameters to edit for that file type
-    df, valid_parameters = load_parameter_file(fn)
+    df, valid_parameters = _load_parameter_file(fn)
 
     parameter_operator_dict = _create_parameter_operator_dict(parameters, operators, values)
 
