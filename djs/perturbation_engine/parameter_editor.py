@@ -43,7 +43,8 @@ def _check_parameter_validity(parameter_file: Union[str, xr.core.dataset.Dataset
 
 def _metadata_string(parameter, op, value, key=''):
     '''
-    Key is d, if parameter is dependent on another parameter, requiring it to also be edited
+    Key is d, if parameter is dependent on another parameter, requiring it to
+    also be edited
     '''
     return '{3} {0}-{1}-{2}'.format(parameter, op, value, key)
 
@@ -90,9 +91,10 @@ def _map_to_operator(op: str):
     except KeyError:
         raise(KeyError('Operator or ditribution "{}" not supported. Please use standard python numeric operators'))
 
-def _create_parameter_operator_dict(parameters: List[str], operators: List[str], values: List[ Union[int, float, bool]]) -> Dict[ str, List[ Tuple[ str, Union[int, float, bool]]]]:
+def _create_parameter_operator_dict(parameters: List[str],
+                                    operators: List[str],
+                                    values: List[ Union[int, float, bool]]) -> Dict[ str, List[ Tuple[ str, Union[int, float, bool]]]]:
     '''
-
     Take a list of: parameters, operators, and values and return a dictionary
     with keys=parameters and values a list of operator value tuples
 
@@ -120,7 +122,8 @@ def _create_parameter_operator_dict(parameters: List[str], operators: List[str],
     else:
         raise KeyError('There were no parameter, operator, value pairs provided')
 
-def _apply_functions(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, List[Tuple[str, Union[float, bool]]]]): 
+def _apply_functions(df: xr.core.dataset.Dataset,
+                     parameter_operator_dict: Dict[str, List[Tuple[str, Union[float, bool]]]]): 
     ''' 
     Map string representaions of mathmatical operations or statistical
     distributions to in-place (+=, -=, *=, etc. ) operations and apply these
@@ -191,7 +194,8 @@ def _apply_functions(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[
 
     return local_df
 
-def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, Tuple[Union[str, bool]]]) -> xr.core.dataset.Dataset:
+def _apply_dists(df: xr.core.dataset.Dataset,
+                 parameter_operator_dict: Dict[str, Tuple[Union[str, bool]]]) -> xr.core.dataset.Dataset:
     '''
     Apply random values sampled from statistical distribution to parameter
     values. Random samples are either applied using a single sample (e.g.
@@ -244,28 +248,59 @@ def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str,
     df = _apply_functions(local_df, apply_dict)
     return df
 
-def edit_parameters(df: Union[str, xr.core.dataset.Dataset], parameters: List[str], operators: List[str], values: List[Union[str, bool]]) -> xr.core.dataset.Dataset:
+def perturb_parameters(df: Union[str, xr.core.dataset.Dataset],
+                       parameters:List[str],
+                       operators_and_or_dists: List[str],
+                       operands_and_or_ubiquitous_bools: List[Union[str, bool]]) -> xr.core.dataset.Dataset:
     '''
-    Return augmented parameter dataframe
+    Apply scalar or randomly sampled values to WRF-Hydro/NWM model parameters
+    using in-place operator (i.e. +=, *=) operand pairs or fitted statistical
+    distribution random sampling.
 
-    df:
-        NWM/Wrf-Hydro parameter file as a filename string or xarray dataset
-    
-    parameters:
-        List of parameters to edit
+    Supported WRF-Hydro/NWM parameters:
+        Route_link.nc: BtmWdth, ChSlp, n, nCC, TopWdth, TopWdthCC, BtmWdth
+        GWBUCKPARM.nc : Expon, Zinit, Zmax
+        LAKEPARM.nc : OrificeA, OrificeC, OrificeE, WeirC, WeirE, WeirL
+        soil_properties.nc: mfsno
+        Fulldom_hires.nc : LKSATFAC, OVROUGHRTFAC, RETDEPRTFAC
 
-    operators:
-        List of operators to be evaluated with values resulting in parameter changes
+    Supported operators:
+        +, -, *, /, ^ OR **, =, %, //, <<, >>
 
-    values:
-        List of values applied using operators
+    Supported distribution:
+        normal, gamma, uniform
 
+    Random samples are applied using a single sample (e.g. df[parameter][:] =
+    1) or a ubiquitous random sampling. Distributions fitting parameters are
+    estimated using an MLE using the values from the input df. The ubiquitous
+    apply bool controls sampling, True results in ubiquitous random sampling,
+    False results in a single random sample applied equally to the parameter.
+
+    input parameters:
+        df:
+            NWM/Wrf-Hydro static domain parameter file as a filename string
+            or xarray dataset
+        
+        parameters:
+            List of NWM-Wrf-Hydro parameters to edit
+
+        operators_and_or_dists:
+            List of operators and/or distributions used to alter parameters
+
+        operands_and_or_ubiquitous_bools:
+            List of operands (i.e. 1.2) and/or booleans (True, False).
+            Operators from operators_and_or_dists are applied using these
+            operands to supplied df parameters. The boolean controls how
+            values are sampled from a distribution. True samples the
+            distribution ubiquitously, meaning a sample is taken for every
+            value of a parameter. Conversely, if False, a single random value
+            is applied to all values of the parameter.
     '''
 
     # Check that provided file contains valid parameters to edit for that file type
     df, valid_parameters = _check_parameter_validity(df)
 
-    parameter_operator_dict = _create_parameter_operator_dict(parameters, operators, values)
+    parameter_operator_dict = _create_parameter_operator_dict(parameters, operators_and_or_dists, operands_and_or_ubiquitous_bools)
 
     # Intersection between provided parameter names and parameters that can be varried is not zero 
     parameter_intersection = set(parameter_operator_dict.keys()) & valid_parameters
