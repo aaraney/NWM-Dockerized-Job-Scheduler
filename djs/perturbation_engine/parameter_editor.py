@@ -3,7 +3,7 @@
 import xarray as xr
 import numpy as np
 import operator
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 from os.path import basename
 
 from djs.job_scheduler.filehandler import identifyDomainFile
@@ -47,7 +47,7 @@ def _metadata_string(parameter, op, value, key=''):
     '''
     return '{3} {0}-{1}-{2}'.format(parameter, op, value, key)
 
-def _map_to_operator(op):
+def _map_to_operator(op: str):
     '''
     Map operators (+, -, /, *, etc.) taken as strings to in-place operators
 
@@ -81,7 +81,7 @@ def _map_to_operator(op):
     except KeyError:
         raise(KeyError('Operator "{}" not supported. Please use standard python numeric operators'))
 
-def _create_operator_value_pair(op, value):
+def _create_operator_value_pair(op: str, value: Union[int, float]) -> List[str, Union[int, float]]:
     '''
     Return a list, where the first index is an inplace operator function and
     the second index a value to be applied using the function.
@@ -92,7 +92,7 @@ def _create_operator_value_pair(op, value):
 
     return( [op, value] )
 
-def _create_parameter_operator_dict(parameters, operators, values):
+def _create_parameter_operator_dict(parameters: List[str], operators: List[str], values: List[ Union[int, float, bool]]) -> Dict[ str, List[ Tuple[ str, Union[int, float, bool]]]]:
     '''
 
     Take a list of: parameters, operators, and values and return a dictionary
@@ -122,7 +122,7 @@ def _create_parameter_operator_dict(parameters, operators, values):
     else:
         raise KeyError('There were no parameter, operator, value pairs provided')
 
-def _apply_functions(df, parameter_operator_dict): 
+def _apply_functions(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, List[Tuple[str, Union[float, bool]]]]): 
     ''' 
 
     Map string representations of mathmatical operations to in-place (+=, -=, *=, etc. )
@@ -158,7 +158,7 @@ def _apply_functions(df, parameter_operator_dict):
             str_func = func_value_pair[0]
             value = func_value_pair[1]
 
-            func = _map_to_operator(str_func) 
+            func = _map_to_operator(str_func)
             operator_name = func.__name__
 
             # Check  for special case when operator is '=', see _create_operator_value_pairs()
@@ -230,7 +230,7 @@ def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str,
     df = _apply_functions(local_df, apply_dict)
     return df
 
-def edit_parameters(df, parameters, operators, values):
+def edit_parameters(df: Union[str, xr.core.dataset.Dataset], parameters: List[str], operators: List[str], values: List[Union[str, bool]]) -> xr.core.dataset.Dataset:
     '''
     Return augmented parameter dataframe
 
