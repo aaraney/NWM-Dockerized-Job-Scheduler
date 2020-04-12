@@ -71,7 +71,7 @@ def _map_to_operator(op):
     '>>' : operator.irshift,
     '-' : operator.isub,
     '/' : operator.itruediv,
-    # equals is special case. Need to provide slice( len(df['param']) )
+    # equals is special case. Setting `=` is handled explicitly within functions checking for setitem function name
     '=' : operator.setitem
     }
 
@@ -177,7 +177,7 @@ def _apply_functions(df, parameter_operator_dict):
 
     return local_df
 
-def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, List[str, bool]]) -> xr.core.dataset.Dataset:
+def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, List[Union[str, bool]]]) -> xr.core.dataset.Dataset:
     '''
     TODO: Docstring should still be expanded
     Apply random values sampled from statistical distribution to parameter
@@ -204,6 +204,9 @@ def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str,
     # import dist functions
     from scipy.stats import norm, gamma, uniform
 
+    # Copy of input df that will be returned
+    local_df = df.copy()
+
     parameter = list(parameter_operator_dict)[0]
     dist_type = parameter_operator_dict[parameter][0]
     apply_bool = bool(parameter_operator_dict[parameter][1])
@@ -212,22 +215,20 @@ def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str,
     parameter_shape = df[parameter].shape
     parameter_size = df[parameter].size
 
-    flattened_parameter_data = df[parameter].reshape(parameter_size, )
-
     # Fit distribution
-    mle_fit = eval(f'{dist_type}.fit(flattened_parameter_data)')
+    mle_fit = eval(f'{dist_type}.fit(df[parameter][:])')
 
     if apply_bool:
-        rvs = eval(f'{dist_type}.rvs(*mle_fit, size = parameter_size)')
+        rvs = eval(f'{dist_type}.rvs(*mle_fit, size = parameter_size).reshape(*parameter_shape)')
     else:
         rvs = eval(f'{dist_type}.rvs(*mle_fit, size = 1)')
 
-    rvs = eval('func(rvs)')
+    # rvs = eval('func(rvs)')
 
     apply_dict = {parameter: [('=', rvs)]}
 
-    df = _apply_functions(df, apply_dict)
-    return df[parameter].reshape(parameter_shape)
+    df = _apply_functions(local_df, apply_dict)
+    return df
 
 def edit_parameters(df, parameters, operators, values):
     '''
