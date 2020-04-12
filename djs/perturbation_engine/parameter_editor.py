@@ -49,12 +49,17 @@ def _metadata_string(parameter, op, value, key=''):
 
 def _map_to_operator(op: str):
     '''
-    Map operators (+, -, /, *, etc.) taken as strings to in-place operators
+    Map valid operators and distributions to their inplace
+    builtin_function_or_method (+, -, /, *, etc.) or string function name in
+    the case of distributions.
 
-    ^ and ** are analogous for in-place raise to a power. ^ does NOT represent an xor
+    Note:
+        ^ and ** are analogous for in-place raise to a power. ^ does NOT
+        represent an xor
 
-    ex: 
+    Example: 
         _map_to_operator('+') -> operator.iadd
+        _map_to_operator('norm') -> 'norm'
 
     See: https://docs.python.org/3.7/library/operator.html#in-place-operators
     for list of operators. Only in-place ops supported
@@ -72,25 +77,18 @@ def _map_to_operator(op: str):
     '-' : operator.isub,
     '/' : operator.itruediv,
     # equals is special case. Setting `=` is handled explicitly within functions checking for setitem function name
-    '=' : operator.setitem
+    '=' : operator.setitem,
+    # return supported distribution
+    'norm': 'norm',
+    'uniform': 'uniform',
+    'gamma': 'gamma',
     }
 
     try:
         return(op_dict[op])
 
     except KeyError:
-        raise(KeyError('Operator "{}" not supported. Please use standard python numeric operators'))
-
-def _create_operator_value_pair(op: str, value: Union[int, float]) -> List[str, Union[int, float]]:
-    '''
-    Return a list, where the first index is an inplace operator function and
-    the second index a value to be applied using the function.
-
-    ex:
-        _create_operator_value_pair('+', 5) -> [operator.iadd, 5]
-    '''
-
-    return( [op, value] )
+        raise(KeyError('Operator or ditribution "{}" not supported. Please use standard python numeric operators'))
 
 def _create_parameter_operator_dict(parameters: List[str], operators: List[str], values: List[ Union[int, float, bool]]) -> Dict[ str, List[ Tuple[ str, Union[int, float, bool]]]]:
     '''
@@ -124,9 +122,11 @@ def _create_parameter_operator_dict(parameters: List[str], operators: List[str],
 
 def _apply_functions(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, List[Tuple[str, Union[float, bool]]]]): 
     ''' 
-
-    Map string representations of mathmatical operations to in-place (+=, -=, *=, etc. )
-    operations and apply these operations on dataframe parameters
+    Map string representaions of mathmatical operations or statistical
+    distributions to in-place (+=, -=, *=, etc. ) operations and apply these
+    operations on dataframe parameters. Note, statistical distributions are
+    applied using either a single sample (e.g. df[parameter][:] = 1) or a
+    ubiquitous random sampling.
 
     Take a dataframe and dictionary, with keys=parameters and values = [ (operator, value), ... ]
     
@@ -135,7 +135,8 @@ def _apply_functions(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[
     Example:
         parameter_operator_dict = 
             {
-                'TopWdth' : [ ('*', 1.2) ] 
+                'TopWdth' : [ ('*', 1.2) ],
+                'nCC' : [ ('norm', False) ],
             }
 
             # '*' gets mapped to its in-place operator representation. Then 1.2
@@ -145,6 +146,11 @@ def _apply_functions(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[
             # df['TopWdth'] *= 1.2
             
             operator.imul( df['TopWdth'], 1.2 )
+
+            # The gaussian normal disribution is fit using an MLE to the 'nCC'
+            # parameter from the input dataframe. False indicates that a single
+            # randomly sampled value from the distribution will be applied
+            # evenly. See _apply_dists for more information.
     '''
 
     local_df = df.copy()
@@ -159,14 +165,22 @@ def _apply_functions(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[
             value = func_value_pair[1]
 
             func = _map_to_operator(str_func)
-            operator_name = func.__name__
+            try:
+                operator_name = func.__name__
 
-            # Check  for special case when operator is '=', see _create_operator_value_pairs()
-            if operator_name ==  'setitem':
-                local_df[parameter][:] = value
+                # Check  for special case when operator is '=', see _create_operator_value_pairs()
+                if operator_name ==  'setitem':
+                    local_df[parameter][:] = value
 
-            else:
-                local_df[parameter] = func( local_df[parameter][:], value )
+                else:
+                    local_df[parameter] = func( local_df[parameter][:], value )
+
+            except AttributeError:
+                # func must be a type of distribution
+                local_parameter_operator_dict = {parameter: func_value_pair}
+
+                # Perturb via distribution
+                local_df = _apply_dists(local_df, local_parameter_operator_dict)
 
             # Tag the dataframe with metadata concerning the change
             if 'perterbation_engine_edits:' in local_df.attrs:
@@ -177,13 +191,15 @@ def _apply_functions(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[
 
     return local_df
 
-def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, List[Union[str, bool]]]) -> xr.core.dataset.Dataset:
+def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, Tuple[Union[str, bool]]]) -> xr.core.dataset.Dataset:
     '''
-    TODO: Docstring should still be expanded
     Apply random values sampled from statistical distribution to parameter
-    values. Random samples are either applied using a single sample or a
-    contemporaneous random sampling. Distributions fitting parameters are
-    estimated using an MLE and the values from the input df. 
+    values. Random samples are either applied using a single sample (e.g.
+    df[parameter][:] = 1) or a ubiquitous random sampling. Distributions
+    fitting parameters are estimated using an MLE and the values from the
+    input df. The ubiquitous apply bool controls sampling, True results in
+    ubiquitous random sampling, False results in a single random sample
+    applied equally to the parameter.
 
     Supported distribution:
         normal, gamma, uniform
@@ -191,13 +207,13 @@ def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str,
     parameter_operator_dict:
         {
         <parameter-name> :
-            [<dist-name>, <contemporaneous-apply-bool>]
+            (<dist-name>, <ubiquitous-apply-bool>)
         }
 
     Example:
         parameter_operator_dict = 
                 {
-                    'TopWdth' : ['gamma', False]
+                    'TopWdth' : ('gamma', False)
                 }
     '''
 
@@ -222,8 +238,6 @@ def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str,
         rvs = eval(f'{dist_type}.rvs(*mle_fit, size = parameter_size).reshape(*parameter_shape)')
     else:
         rvs = eval(f'{dist_type}.rvs(*mle_fit, size = 1)')
-
-    # rvs = eval('func(rvs)')
 
     apply_dict = {parameter: [('=', rvs)]}
 
@@ -271,10 +285,6 @@ def edit_parameters(df: Union[str, xr.core.dataset.Dataset], parameters: List[st
 #     '''(dateset, parameter name to be modified, scaler list for each streamorder)'''
 #     # This function scales the chosen parameter and the dependent parameters if any.
 
-#     # TODO: For Iman: Raise values error when len(para_names) != len(scales_list)
-#     valid_para_to_edit = {'ChSlp', 'n', 'nCC', 'TopWdth', 'TopWdthCC', 'BtmWdth'}
-#     if para_name not in valid_para_to_edit:
-#         raise ValueError("results: parameter_name to be edited must be one of %r." % valid_para_to_edit)
 
 #     for i, streamorder in enumerate(streamorder_list):
 #         ds[para_name] = xr.where(ds.order == streamorder, ds[para_name] * scale_list[i], ds[para_name])
