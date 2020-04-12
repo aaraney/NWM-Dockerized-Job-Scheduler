@@ -3,7 +3,7 @@
 import xarray as xr
 import numpy as np
 import operator
-from typing import Union
+from typing import Dict, List, Union
 from os.path import basename
 
 from djs.job_scheduler.filehandler import identifyDomainFile
@@ -163,7 +163,7 @@ def _apply_functions(df, parameter_operator_dict):
 
             # Check  for special case when operator is '=', see _create_operator_value_pairs()
             if operator_name ==  'setitem':
-                local_df[parameter] = func( local_df[parameter], slice( 0, len( local_df[parameter] )), value )
+                local_df[parameter][:] = value
 
             else:
                 local_df[parameter] = func( local_df[parameter][:], value )
@@ -176,6 +176,58 @@ def _apply_functions(df, parameter_operator_dict):
                 local_df.attrs['perterbation_engine_edits:'] = _metadata_string( parameter, str_func, value )
 
     return local_df
+
+def _apply_dists(df: xr.core.dataset.Dataset, parameter_operator_dict: Dict[str, List[str, bool]]) -> xr.core.dataset.Dataset:
+    '''
+    TODO: Docstring should still be expanded
+    Apply random values sampled from statistical distribution to parameter
+    values. Random samples are either applied using a single sample or a
+    contemporaneous random sampling. Distributions fitting parameters are
+    estimated using an MLE and the values from the input df. 
+
+    Supported distribution:
+        normal, gamma, uniform
+
+    parameter_operator_dict:
+        {
+        <parameter-name> :
+            [<dist-name>, <contemporaneous-apply-bool>]
+        }
+
+    Example:
+        parameter_operator_dict = 
+                {
+                    'TopWdth' : ['gamma', False]
+                }
+    '''
+
+    # import dist functions
+    from scipy.stats import norm, gamma, uniform
+
+    parameter = list(parameter_operator_dict)[0]
+    dist_type = parameter_operator_dict[parameter][0]
+    apply_bool = bool(parameter_operator_dict[parameter][1])
+
+    parameter_datatype = eval(f'np.{str(df[parameter].dtype)}')
+    parameter_shape = df[parameter].shape
+    parameter_size = df[parameter].size
+
+    flattened_parameter_data = df[parameter].reshape(parameter_size, )
+
+    # Fit distribution
+    mle_fit = eval(f'{dist_type}.fit(flattened_parameter_data)')
+
+    if apply_bool:
+        rvs = eval(f'{dist_type}.rvs(*mle_fit, size = parameter_size)')
+    else:
+        rvs = eval(f'{dist_type}.rvs(*mle_fit, size = 1)')
+
+    rvs = eval('func(rvs)')
+
+    apply_dict = {parameter: [('=', rvs)]}
+
+    df = _apply_functions(df, apply_dict)
+    return df[parameter].reshape(parameter_shape)
 
 def edit_parameters(df, parameters, operators, values):
     '''
