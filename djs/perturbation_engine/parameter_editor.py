@@ -77,7 +77,8 @@ def _map_to_operator(op: str):
     '>>' : operator.irshift,
     '-' : operator.isub,
     '/' : operator.itruediv,
-    # equals is special case. Setting `=` is handled explicitly within functions checking for setitem function name
+    # equals is special case. Setting `=` is handled explicitly within
+    # functions checking for setitem function name
     '=' : operator.setitem,
     # return supported distribution
     'norm': 'norm',
@@ -91,37 +92,6 @@ def _map_to_operator(op: str):
     except KeyError:
         raise(KeyError('Operator or ditribution "{}" not supported. Please use standard python numeric operators'))
 
-def _create_parameter_operator_dict(parameters: List[str],
-                                    operators: List[str],
-                                    values: List[ Union[int, float, bool]]) -> Dict[ str, List[ Tuple[ str, Union[int, float, bool]]]]:
-    '''
-    Take a list of: parameters, operators, and values and return a dictionary
-    with keys=parameters and values a list of operator value tuples
-
-    '''
-
-    if not len(parameters) == len(operators) == len(values):
-        raise IndexError('Check that number of provided parameters, operators, and values equal the same length')
-
-    parameter_dict = {}
-
-    for index, parameter in enumerate(parameters):
-
-        # If parameter already key in dictionary, then append to the list of
-        # operator, value tuples
-        if parameter in parameter_dict.keys():
-            parameter_dict[parameter].append( (operators[index], values[index]) )
-        
-        else:
-            parameter_dict[parameter] = [ (operators[index], values[index]) ] 
-
-    # Check to make sure dictionary isnt empty
-    if len(parameter_dict.keys()):
-        return parameter_dict
-    
-    else:
-        raise KeyError('There were no parameter, operator, value pairs provided')
-
 def _apply_functions(df: xr.core.dataset.Dataset,
                      parameter_operator_dict: Dict[str, List[Tuple[str, Union[float, bool]]]]): 
     ''' 
@@ -131,7 +101,8 @@ def _apply_functions(df: xr.core.dataset.Dataset,
     applied using either a single sample (e.g. df[parameter][:] = 1) or a
     ubiquitous random sampling.
 
-    Take a dataframe and dictionary, with keys=parameters and values = [ (operator, value), ... ]
+    Take a dataframe and dictionary, with keys=parameters and values = [
+    (operator, value), ... ]
     
     Return augmented COPY of df
 
@@ -249,9 +220,7 @@ def _apply_dists(df: xr.core.dataset.Dataset,
     return df
 
 def perturb_parameters(df: Union[str, xr.core.dataset.Dataset],
-                       parameters:List[str],
-                       operators_and_or_dists: List[str],
-                       operands_and_or_ubiquitous_bools: List[Union[str, bool]]) -> xr.core.dataset.Dataset:
+                       parameter_operator_dict: Dict[str, List[Tuple[Union[bool, str, float, int]]]]) -> xr.core.dataset.Dataset:
     '''
     Apply scalar or randomly sampled values to WRF-Hydro/NWM model parameters
     using in-place operator (i.e. +=, *=) operand pairs or fitted statistical
@@ -299,8 +268,6 @@ def perturb_parameters(df: Union[str, xr.core.dataset.Dataset],
 
     # Check that provided file contains valid parameters to edit for that file type
     df, valid_parameters = _check_parameter_validity(df)
-
-    parameter_operator_dict = _create_parameter_operator_dict(parameters, operators_and_or_dists, operands_and_or_ubiquitous_bools)
 
     # Intersection between provided parameter names and parameters that can be varried is not zero 
     parameter_intersection = set(parameter_operator_dict.keys()) & valid_parameters
