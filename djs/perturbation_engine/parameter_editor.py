@@ -3,7 +3,7 @@
 import xarray as xr
 import numpy as np
 import operator
-from typing import Union
+from typing import Dict, List, Tuple, Union
 from os.path import basename
 
 from djs.job_scheduler.filehandler import identifyDomainFile
@@ -43,18 +43,24 @@ def _check_parameter_validity(parameter_file: Union[str, xr.core.dataset.Dataset
 
 def _metadata_string(parameter, op, value, key=''):
     '''
-    Key is d, if parameter is dependent on another parameter, requiring it to also be edited
+    Key is d, if parameter is dependent on another parameter, requiring it to
+    also be edited
     '''
     return '{3} {0}-{1}-{2}'.format(parameter, op, value, key)
 
-def _map_to_operator(op):
+def _map_to_operator(op: str):
     '''
-    Map operators (+, -, /, *, etc.) taken as strings to in-place operators
+    Map valid operators and distributions to their inplace
+    builtin_function_or_method (+, -, /, *, etc.) or string function name in
+    the case of distributions.
 
-    ^ and ** are analogous for in-place raise to a power. ^ does NOT represent an xor
+    Note:
+        ^ and ** are analogous for in-place raise to a power. ^ does NOT
+        represent an xor
 
-    ex: 
+    Example: 
         _map_to_operator('+') -> operator.iadd
+        _map_to_operator('norm') -> 'norm'
 
     See: https://docs.python.org/3.7/library/operator.html#in-place-operators
     for list of operators. Only in-place ops supported
@@ -71,71 +77,40 @@ def _map_to_operator(op):
     '>>' : operator.irshift,
     '-' : operator.isub,
     '/' : operator.itruediv,
-    # equals is special case. Need to provide slice( len(df['param']) )
-    '=' : operator.setitem
+    # equals is special case. Setting `=` is handled explicitly within
+    # functions checking for setitem function name
+    '=' : operator.setitem,
+    # return supported distribution
+    'norm': 'norm',
+    'uniform': 'uniform',
+    'gamma': 'gamma',
     }
 
     try:
         return(op_dict[op])
 
     except KeyError:
-        raise(KeyError('Operator "{}" not supported. Please use standard python numeric operators'))
+        raise(KeyError('Operator or ditribution "{}" not supported. Please use standard python numeric operators'))
 
-def _create_operator_value_pair(op, value):
-    '''
-    Return a list, where the first index is an inplace operator function and
-    the second index a value to be applied using the function.
-
-    ex:
-        _create_operator_value_pair('+', 5) -> [operator.iadd, 5]
-    '''
-
-    return( [op, value] )
-
-def _create_parameter_operator_dict(parameters, operators, values):
-    '''
-
-    Take a list of: parameters, operators, and values and return a dictionary
-    with keys=parameters and values a list of operator value tuples
-
-    '''
-
-    if not len(parameters) == len(operators) == len(values):
-        raise IndexError('Check that number of provided parameters, operators, and values equal the same length')
-
-    parameter_dict = {}
-
-    for index, parameter in enumerate(parameters):
-
-        # If parameter already key in dictionary, then append to the list of
-        # operator, value tuples
-        if parameter in parameter_dict.keys():
-            parameter_dict[parameter].append( (operators[index], values[index]) )
-        
-        else:
-            parameter_dict[parameter] = [ (operators[index], values[index]) ] 
-
-    # Check to make sure dictionary isnt empty
-    if len(parameter_dict.keys()):
-        return parameter_dict
-    
-    else:
-        raise KeyError('There were no parameter, operator, value pairs provided')
-
-def _apply_functions(df, parameter_operator_dict): 
+def _apply_functions(df: xr.core.dataset.Dataset,
+                     parameter_operator_dict: Dict[str, List[Tuple[str, Union[float, bool]]]]): 
     ''' 
+    Map string representaions of mathmatical operations or statistical
+    distributions to in-place (+=, -=, *=, etc. ) operations and apply these
+    operations on dataframe parameters. Note, statistical distributions are
+    applied using either a single sample (e.g. df[parameter][:] = 1) or a
+    ubiquitous random sampling.
 
-    Map string representations of mathmatical operations to in-place (+=, -=, *=, etc. )
-    operations and apply these operations on dataframe parameters
-
-    Take a dataframe and dictionary, with keys=parameters and values = [ (operator, value), ... ]
+    Take a dataframe and dictionary, with keys=parameters and values = [
+    (operator, value), ... ]
     
     Return augmented COPY of df
 
     Example:
         parameter_operator_dict = 
             {
-                'TopWdth' : [ ('*', 1.2) ] 
+                'TopWdth' : [ ('*', 1.2) ],
+                'nCC' : [ ('norm', False) ],
             }
 
             # '*' gets mapped to its in-place operator representation. Then 1.2
@@ -145,6 +120,11 @@ def _apply_functions(df, parameter_operator_dict):
             # df['TopWdth'] *= 1.2
             
             operator.imul( df['TopWdth'], 1.2 )
+
+            # The gaussian normal disribution is fit using an MLE to the 'nCC'
+            # parameter from the input dataframe. False indicates that a single
+            # randomly sampled value from the distribution will be applied
+            # evenly. See _apply_dists for more information.
     '''
 
     local_df = df.copy()
@@ -158,15 +138,23 @@ def _apply_functions(df, parameter_operator_dict):
             str_func = func_value_pair[0]
             value = func_value_pair[1]
 
-            func = _map_to_operator(str_func) 
-            operator_name = func.__name__
+            func = _map_to_operator(str_func)
+            try:
+                operator_name = func.__name__
 
-            # Check  for special case when operator is '=', see _create_operator_value_pairs()
-            if operator_name ==  'setitem':
-                local_df[parameter] = func( local_df[parameter], slice( 0, len( local_df[parameter] )), value )
+                # Check  for special case when operator is '=', see _create_operator_value_pairs()
+                if operator_name ==  'setitem':
+                    local_df[parameter][:] = value
 
-            else:
-                local_df[parameter] = func( local_df[parameter][:], value )
+                else:
+                    local_df[parameter] = func( local_df[parameter][:], value )
+
+            except AttributeError:
+                # func must be a type of distribution
+                local_parameter_operator_dict = {parameter: func_value_pair}
+
+                # Perturb via distribution
+                local_df = _apply_dists(local_df, local_parameter_operator_dict)
 
             # Tag the dataframe with metadata concerning the change
             if 'perterbation_engine_edits:' in local_df.attrs:
@@ -177,28 +165,109 @@ def _apply_functions(df, parameter_operator_dict):
 
     return local_df
 
-def edit_parameters(df, parameters, operators, values):
+def _apply_dists(df: xr.core.dataset.Dataset,
+                 parameter_operator_dict: Dict[str, Tuple[Union[str, bool]]]) -> xr.core.dataset.Dataset:
     '''
-    Return augmented parameter dataframe
+    Apply random values sampled from statistical distribution to parameter
+    values. Random samples are either applied using a single sample (e.g.
+    df[parameter][:] = 1) or a ubiquitous random sampling. Distributions
+    fitting parameters are estimated using an MLE and the values from the
+    input df. The ubiquitous apply bool controls sampling, True results in
+    ubiquitous random sampling, False results in a single random sample
+    applied equally to the parameter.
 
-    df:
-        NWM/Wrf-Hydro parameter file as a filename string or xarray dataset
-    
-    parameters:
-        List of parameters to edit
+    Supported distribution:
+        normal, gamma, uniform
 
-    operators:
-        List of operators to be evaluated with values resulting in parameter changes
+    parameter_operator_dict:
+        {
+        <parameter-name> :
+            (<dist-name>, <ubiquitous-apply-bool>)
+        }
 
-    values:
-        List of values applied using operators
+    Example:
+        parameter_operator_dict = 
+                {
+                    'TopWdth' : ('gamma', False)
+                }
+    '''
 
+    # import dist functions
+    from scipy.stats import norm, gamma, uniform
+
+    # Copy of input df that will be returned
+    local_df = df.copy()
+
+    parameter = list(parameter_operator_dict)[0]
+    dist_type = parameter_operator_dict[parameter][0]
+    apply_bool = bool(parameter_operator_dict[parameter][1])
+
+    parameter_datatype = eval(f'np.{str(df[parameter].dtype)}')
+    parameter_shape = df[parameter].shape
+    parameter_size = df[parameter].size
+
+    # Fit distribution
+    mle_fit = eval(f'{dist_type}.fit(df[parameter][:])')
+
+    if apply_bool:
+        rvs = eval(f'{dist_type}.rvs(*mle_fit, size = parameter_size).reshape(*parameter_shape)')
+    else:
+        rvs = eval(f'{dist_type}.rvs(*mle_fit, size = 1)')
+
+    apply_dict = {parameter: [('=', rvs)]}
+
+    df = _apply_functions(local_df, apply_dict)
+    return df
+
+def perturb_parameters(df: Union[str, xr.core.dataset.Dataset],
+                       parameter_operator_dict: Dict[str, List[Tuple[Union[bool, str, float, int]]]]) -> xr.core.dataset.Dataset:
+    '''
+    Apply scalar or randomly sampled values to WRF-Hydro/NWM model parameters
+    using in-place operator (i.e. +=, *=) operand pairs or fitted statistical
+    distribution random sampling.
+
+    Supported WRF-Hydro/NWM parameters:
+        Route_link.nc: BtmWdth, ChSlp, n, nCC, TopWdth, TopWdthCC, BtmWdth
+        GWBUCKPARM.nc : Expon, Zinit, Zmax
+        LAKEPARM.nc : OrificeA, OrificeC, OrificeE, WeirC, WeirE, WeirL
+        soil_properties.nc: mfsno
+        Fulldom_hires.nc : LKSATFAC, OVROUGHRTFAC, RETDEPRTFAC
+
+    Supported operators:
+        +, -, *, /, ^ OR **, =, %, //, <<, >>
+
+    Supported distribution:
+        normal, gamma, uniform
+
+    Random samples are applied using a single sample (e.g. df[parameter][:] =
+    1) or a ubiquitous random sampling. Distributions fitting parameters are
+    estimated using an MLE using the values from the input df. The ubiquitous
+    apply bool controls sampling, True results in ubiquitous random sampling,
+    False results in a single random sample applied equally to the parameter.
+
+    input parameters:
+        df:
+            NWM/Wrf-Hydro static domain parameter file as a filename string
+            or xarray dataset
+        
+        parameters:
+            List of NWM-Wrf-Hydro parameters to edit
+
+        operators_and_or_dists:
+            List of operators and/or distributions used to alter parameters
+
+        operands_and_or_ubiquitous_bools:
+            List of operands (i.e. 1.2) and/or booleans (True, False).
+            Operators from operators_and_or_dists are applied using these
+            operands to supplied df parameters. The boolean controls how
+            values are sampled from a distribution. True samples the
+            distribution ubiquitously, meaning a sample is taken for every
+            value of a parameter. Conversely, if False, a single random value
+            is applied to all values of the parameter.
     '''
 
     # Check that provided file contains valid parameters to edit for that file type
     df, valid_parameters = _check_parameter_validity(df)
-
-    parameter_operator_dict = _create_parameter_operator_dict(parameters, operators, values)
 
     # Intersection between provided parameter names and parameters that can be varried is not zero 
     parameter_intersection = set(parameter_operator_dict.keys()) & valid_parameters
@@ -218,10 +287,6 @@ def edit_parameters(df, parameters, operators, values):
 #     '''(dateset, parameter name to be modified, scaler list for each streamorder)'''
 #     # This function scales the chosen parameter and the dependent parameters if any.
 
-#     # TODO: For Iman: Raise values error when len(para_names) != len(scales_list)
-#     valid_para_to_edit = {'ChSlp', 'n', 'nCC', 'TopWdth', 'TopWdthCC', 'BtmWdth'}
-#     if para_name not in valid_para_to_edit:
-#         raise ValueError("results: parameter_name to be edited must be one of %r." % valid_para_to_edit)
 
 #     for i, streamorder in enumerate(streamorder_list):
 #         ds[para_name] = xr.where(ds.order == streamorder, ds[para_name] * scale_list[i], ds[para_name])

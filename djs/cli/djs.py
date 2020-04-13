@@ -8,7 +8,7 @@ import click
 from djs.job_scheduler.scheduler import Scheduler
 
 # Perturbation engine related imports
-from djs.perturbation_engine import parameter_editor
+from djs.perturbation_engine.parameter_editor import edit_parameters
 
 # djs CLI, top most click.group()
 @click.group()
@@ -50,8 +50,36 @@ def from_yaml(setup_yaml, dry_run):
 
 # Perturbation engine CLI
 @main.command()
-def perturbation_engine():
-    pass
+@click.option('--input', '-i', required=False,
+            help='Input WRF-Hydro/NWM static domain file')
+@click.option('--parameter', '-p', required=False,
+            help='WRF-Hydro/NWM parameter for varying within the input file')
+@click.option('--scalar', '-s', required=False, nargs=2, #type=click.Tuple([str, float]),
+help='''Use a provided scalar to adjust the provided WRF-Hydro/NWM parameter (i.e. + 2)
+\nAvailable operators include:
+\n\t=, +, -, *, /, ^ or **, %, //, <<, >>''')
+@click.option('--output', '-o', required=False,
+    help='Output file netcdf file for storing perturbed parameter file')
+def perturbation_engine(**kwargs):
+    
+    # Check that kwarg values are not None. Checking empty list condition 
+    # not [] -> True
+    if [v for v in kwargs.values() if v is not None]:
+        print('here')
+        _input = kwargs['input']
+        parameter = [kwargs['parameter']]
+        op_args = [kwargs['scalar'][0]]
+        value_args = list(map(float, list(kwargs['scalar'][1])))
+
+        print(f'{_input}\n{parameter}\n{op_args}\n{value_args}')
+        # output = kwargs['output']
+
+        df = edit_parameters(_input, parameter, op_args, value_args)
+        print(df)
+
+    else:
+        pass
+
 
 if __name__ == "__main__":
     main()
