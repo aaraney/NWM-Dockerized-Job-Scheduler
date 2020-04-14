@@ -1,42 +1,124 @@
 #!/usr/bin/env python3
 
-# CLI library import
 import click
 
 # Local imports
-# Job Scheduler related imports
 from djs.job_scheduler.scheduler import Scheduler
+from djs.perturbation_engine.from_yaml import perturb_from_yaml
 
-# Perturbation engine related imports
-from djs.perturbation_engine.parameter_editor import edit_parameters
+
+# Adapted from https://click.palletsprojects.com/en/7.x/advanced/
+class AliasedGroup(click.Group):
+    '''
+    Allow commands to be accessed using aliases for ease on the phalanges.
+    '''
+
+    __alias_dict = {
+        'js': 'job-scheduler',
+        'pe': 'perturbation-engine',
+    }
+
+    def get_command(self, ctx, cmd_name):
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+        try:
+            alias_cmd = self.__alias_dict[cmd_name]
+        except KeyError:
+            return None
+        
+        return click.Group.get_command(self, ctx, alias_cmd)
 
 # djs CLI, top most click.group()
-@click.group()
+@click.group(cls=AliasedGroup)
 def main():
     '''
-    The Dockerized Job Scheduler (djs) is capable of automating, managing,
-    and executing numerous NWM simulations simultaneously. This framework was
-    designed with the intent of removing the overhead of model setup and
-    compilation, thereby lowering the barrier for entry without limiting
-    performance. In doing so, facilitating an environment for scientists to
-    more easily test hypotheses.
+    Is a tool for easily varying NWM/WRF-Hydro model parameters and
+    running concurrent simulations inside of Docker contianers. Both the
+    job-scheduler and perturbation-engine use yaml files to complete
+    operations. See their help pages for more information.
+
+    js | job-scheduler [yaml file]:\n
+       Is capable of automating, managing, and executing concurrent
+       NWM/Wrf-Hydro simulations for the purpose of simulating different
+       model parameter scenarios. Docker image with precompiled WRF-Hydro/NWM
+       binaries are used to complete simulations.
+
+    pe | perturbation-engine [yaml file]:\n
+        A tool to quickly adjust and/or stochastically vary WRF-Hydro/NWM
+        model parameters to create altered parameter files. It offers the
+        ability to scale parameters using mathmatical operators or randomly
+        sample values and apply them to the paramter using a statistical
+        distribution.
+        
     '''
     pass
 
 # Job Schdeuler CLI
-@main.group()
-def job_scheduler():
-    from djs.job_scheduler.scheduler import Scheduler
-
-@job_scheduler.command()
-@click.argument('setup_yaml', nargs=1)
+@main.command('job-scheduler', short_help = 'Run concurrent NWM/WRF-Hydro simulations')
+@click.argument('setup_yaml', type=click.File('r'), nargs=1)
 @click.option('--dry-run', '-d', required=False, is_flag=True, 
               help='Do not start jobs, instead print jobs queue')
-def from_yaml(setup_yaml, dry_run):
+def job_scheduler(setup_yaml, dry_run):
     '''
-    Start Wrf-Hydro/NWM simulations from provided yaml setup file
-    '''
+    Run concurrent NWM/WRF-Hydro simulations scenarios using Docker. It takes
+    a directory of model related files and a list of alternative model domain
+    parameter files, then the Job Scheduler maps the alternative model files
+    to individual NWM/WRF-Hydro simulations. This setup information is
+    contained in a yaml file as depicted below.
+    
+    \b
+    Yaml setup file structure:
+        primary: path-to-modeling-directory
+        alternative-files:
+            - path-to-alternative-file
+            ...
+            - path-to-alternative-file
+        cpus: number-of-cpus to use
+        max-jobs: maximum running Docker containers
+        mpi-np: number of mpi jobs per container
+        image: docker image to use for each container
+    
+    \b
+    Example Yaml setup file:
+        primary: 'primary'
+        alternative-files:
+            - 'Route_Link.nc'
+            - 'Route_Link_1.nc'
+            - 'Route_Link_2.nc'
+            - 'Route_Link_3.nc'
+            - 'Route_Link_4.nc'
+        cpus: '0-7'
+        max-jobs: 3
+        mpi-np: 2
+        image: 'aaraney/nwm-djs:2.0'
 
+    \b
+    Example primary directory structure:
+        ./primary/
+            namelist.hrldas
+            hydro.namelist
+            DOMAIN/
+                Fulldom_hires.nc
+                GEOGRID_LDASOUT_Spatial_Metadata.nc
+                geo_em.d01.nc
+                GWBUCKPARM.nc
+                hydro2dtbl.nc
+                LAKEPARM.nc
+                nudgingParams.nc
+                Route_Link.nc
+                soil_properties.nc
+                spatialweights.nc
+                wrfinput_d01.nc
+            RESTART/
+                # If you are starting the model warm
+                HYDRO_RST.YYYY-MM-DD_HH-MM_DOMAIN1
+                RESTART.YYYYMMDDHH_DOMAIN1
+            FORCING/
+                # E.g., if you are using NLDAS hourly forcings
+                YYYYMMDDHH.LDASIN_DOMAIN1
+
+    '''
     scheduler = Scheduler.fromYaml(setup_yaml)
 
     # If the --dry-run flag is passed, 
@@ -49,36 +131,64 @@ def from_yaml(setup_yaml, dry_run):
         scheduler.startJobs()
 
 # Perturbation engine CLI
-@main.command()
-@click.option('--input', '-i', required=False,
-            help='Input WRF-Hydro/NWM static domain file')
-@click.option('--parameter', '-p', required=False,
-            help='WRF-Hydro/NWM parameter for varying within the input file')
-@click.option('--scalar', '-s', required=False, nargs=2, #type=click.Tuple([str, float]),
-help='''Use a provided scalar to adjust the provided WRF-Hydro/NWM parameter (i.e. + 2)
-\nAvailable operators include:
-\n\t=, +, -, *, /, ^ or **, %, //, <<, >>''')
-@click.option('--output', '-o', required=False,
-    help='Output file netcdf file for storing perturbed parameter file')
-def perturbation_engine(**kwargs):
-    
-    # Check that kwarg values are not None. Checking empty list condition 
-    # not [] -> True
-    if [v for v in kwargs.values() if v is not None]:
-        print('here')
-        _input = kwargs['input']
-        parameter = [kwargs['parameter']]
-        op_args = [kwargs['scalar'][0]]
-        value_args = list(map(float, list(kwargs['scalar'][1])))
+@main.command('perturbation-engine', short_help = 'Perturb NWM/WRF-Hyrdo parameter files')
+@click.argument('setup_yaml', type=click.File('r'), nargs=1)
+def perturbation_engine(setup_yaml):
+    '''
+    Apply scalar or randomly sampled values to WRF-Hydro/NWM model parameters
+    using in-place operator (i.e. +=, *=) operand pairs or fitted statistical
+    distribution random sampling using a setup yaml file.
 
-        print(f'{_input}\n{parameter}\n{op_args}\n{value_args}')
-        # output = kwargs['output']
+    \b
+    Supported WRF-Hydro/NWM parameters:
+        Route_link.nc: BtmWdth, ChSlp, n, nCC, TopWdth, TopWdthCC, BtmWdth
+        GWBUCKPARM.nc : Expon, Zinit, Zmax
+        LAKEPARM.nc : OrificeA, OrificeC, OrificeE, WeirC, WeirE, WeirL
+        soil_properties.nc: mfsno
+        Fulldom_hires.nc : LKSATFAC, OVROUGHRTFAC, RETDEPRTFAC
 
-        df = edit_parameters(_input, parameter, op_args, value_args)
-        print(df)
+    \b
+    Supported operators:
+        +, -, *, /, ^ OR **, =, %, //, <<, >>
 
-    else:
-        pass
+    \b
+    Supported distribution:
+        normal, gamma, uniform
+
+    \b
+    Yaml setup file structure:
+        path-to-paramterfile.nc:
+            - parameter_name:
+                output <optional>: output-filename
+                perturbation-method: operator operand pairs OR boolean
+            - group_of_parameters:
+                output <optional>: group-output-filename
+                parameter_name_0:
+                    perturbation-method: operator operand pairs OR boolean
+                parameter_name_1:
+                    perturbation-method: operator operand pairs OR boolean
+
+    \b
+    Example Yaml setup file:
+        /home/example/NWM-Docker-Ensemble-Framework/pocono_test_case/Route_Link.nc:
+            - group1:
+                output: 'ChSlp_nCC_scalar.nc'
+                ChSlp:
+                    scalar: '- 2'
+                nCC:
+                    scalar: '* 3'
+            - n:
+                output: 'n_normal.nc'
+                norm: True
+            - TopWdthCC:
+                gamma: False
+                scalar: '* 1'
+        /home/example/NWM-Docker-Ensemble-Framework/pocono_test_case/primary/DOMAIN/Fulldom_hires.nc:
+            - LKSATFAC:
+                output: ubiquitous_uniform_Fulldom_hires.nc
+                uniform: True
+    '''
+    perturb_from_yaml(setup_yaml)
 
 
 if __name__ == "__main__":
