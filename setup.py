@@ -39,4 +39,5 @@ setup(
 
     # Search keywords
     keywords='docker nwm hydrology cuahsi noaa owp nwc',
+    python_requires='>=3.5'
 )
