@@ -56,7 +56,7 @@ def main():
 
 # Job Schdeuler CLI
 @main.command('job-scheduler', short_help = 'Run concurrent NWM/WRF-Hydro simulations')
-@click.argument('setup_yaml', type=click.File('r'), nargs=1)
+@click.argument('setup_yaml', type=click.Path(exists=True), nargs=1)
 @click.option('--dry-run', '-d', required=False, is_flag=True, 
               help='Do not start jobs, instead print jobs queue')
 def job_scheduler(setup_yaml, dry_run):
@@ -132,7 +132,7 @@ def job_scheduler(setup_yaml, dry_run):
 
 # Perturbation engine CLI
 @main.command('perturbation-engine', short_help = 'Perturb NWM/WRF-Hyrdo parameter files')
-@click.argument('setup_yaml', type=click.File('r'), nargs=1)
+@click.argument('setup_yaml', type=click.Path(exists=True), nargs=1)
 def perturbation_engine(setup_yaml):
     '''
     Apply scalar or randomly sampled values to WRF-Hydro/NWM model parameters

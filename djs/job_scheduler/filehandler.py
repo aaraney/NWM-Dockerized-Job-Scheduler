@@ -26,7 +26,8 @@ file_type_dict = {
     'qThresh': 'nudgingParams.nc',
     'bexp': 'soil_properties.nc',
     'weight': 'spatialweights.nc',
-    'CANWAT': 'wrfinput_d01.nc'
+    'CANWAT': 'wrfinput_d01.nc',
+    'crs': 'GEOGRID_LDASOUT_Spatial_Metadata.nc'
 
 }
 
@@ -40,9 +41,16 @@ def identifyDomainFile(domain_file: Union[str, xr.core.dataset.Dataset]):
     if type(domain_file) is str:
         domain_file = xr.open_dataset(domain_file)
 
-    for key in file_type_dict:
-        if key in domain_file.keys():
-            return file_type_dict[key]
+    key_intersect = file_type_dict.keys() & domain_file.keys()
+
+    # crs is the only key with overlap, 
+    if len(key_intersect) > 1:
+
+        key_intersect.discard('crs')
+        return file_type_dict[key_intersect.pop()]
+
+    elif len(key_intersect):
+        return file_type_dict[key_intersect.pop()]
 
     else:
-        raise KeyError('Check the validity of your domain files.\nNote: GEOGRID_LDASOUT_Spatial_Metadata.nc is not supported file')
+        raise KeyError('''Check the validity of your domain files.''')
