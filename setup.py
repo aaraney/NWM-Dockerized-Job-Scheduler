@@ -19,7 +19,7 @@ setup(
     name='djs',
     version='0.0.1',
     packages=find_packages(exclude=['*test*']),
-    url='https://github.com/aaraney/NWM-Docker-Ensemble-Framework',
+    url='https://github.com/aaraney/NWM-Dockerized-Job-Scheduler',
 
     # Set entry point for CLI
     entry_points= {
