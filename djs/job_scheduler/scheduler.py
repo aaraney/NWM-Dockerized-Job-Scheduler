@@ -250,4 +250,6 @@ class Scheduler(object):
                 job = self._jobQ.pop()
                 self.setupJob(job)
                 running_job = self.runJob(job, self.image_tag, self._MAX_CPUS)
+                print('''Simulation started:
+                {}'''.format(str(running_job).replace('\n', '\n\t')))
             running_containers_list = self.docker_client.containers.list()

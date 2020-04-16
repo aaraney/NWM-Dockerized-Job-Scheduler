@@ -39,7 +39,19 @@ def identifyDomainFile(domain_file: Union[str, xr.core.dataset.Dataset]):
     identifyDomainFile('Route_link123.nc) -> 'Route_link.nc'
     '''
     if type(domain_file) is str:
-        domain_file = xr.open_dataset(domain_file)
+
+         # Handle SerializationWarning xarray throws when variable has multiple fill values
+        try:
+            import warnings
+
+            # Catch all warnings and turn them into exceptions
+            with warnings.catch_warnings():
+                warnings.simplefilter('error')
+                domain_file = xr.open_dataset(domain_file)
+
+        except:
+                # Ignore datetime decoding
+                domain_file = xr.open_dataset(domain_file, decode_cf=False)
 
     key_intersect = file_type_dict.keys() & domain_file.keys()
 

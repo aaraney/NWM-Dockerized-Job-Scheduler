@@ -153,7 +153,7 @@ def perturbation_engine(setup_yaml):
 
     \b
     Supported distribution:
-        normal, gamma, uniform
+        norm, gamma, uniform
 
     \b
     Yaml setup file structure:

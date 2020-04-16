@@ -17,14 +17,12 @@ class Job(object):
         self.primary_mnt_point = primary_mnt_point
         self.alt_domain_list = alt_domain_list
         self._container_id = None
-        # self.mpi_host_file = mpi_host_file
 
     def __str__(self):
-        return 'mnt: {}\nparent mnt: {}\ndomain list: {}\ncontainer_id: {}' \
-               .format(
-            self.replica_mnt_point, self.primary_mnt_point,
-            self.alt_domain_list,self.container_id
-        )
+        # Only print the first 12 characters of the id
+        return f'''mount point: {self.replica_mnt_point}
+        alternate files: {self.alt_domain_list}
+        container_id: {self._container_id.id[:12]}'''
 
     @property
     def container_id(self):
