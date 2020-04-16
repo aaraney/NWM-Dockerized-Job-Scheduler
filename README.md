@@ -1,30 +1,144 @@
-# A Reproducible Framework to Generate Parameter based NWM Ensemble
+# DJS
 
-We developed a generalized framework to efficiently generate performance based NWM ensemble outputs. The framework uses a pseudo random Latin hypercube approach to scale channel parameters, utilizes Docker to deploy and manage asynchronous NWM containers, and creates a weighted average ensemble output based on a rank system. These three tasks have been coded with modularity in mind, these three units have been named, the perturbation engine, the dockerized job scheduler (DJS), and the ensemble generator.
+DJS is an open-source python library for adjusting parameters and completing concurrent WRF-Hydro/National Water Model simulations. It provides tools that simplify model usage and executions that are operable across operating systems. The framework consists of two main pieces:
 
-## Pocono Test Case
-Easily use our framework using [this](https://github.com/aaraney/NWM-Docker-Ensemble-Framework/tree/master/pocono_test_case/) test case.
+- __Perturbation Engine__ for scaling and stochastically generating model parameter sets.
+- __Job Scheduler__ for spawning and managing concurrent model simulations.
 
-## Updates:
-### 7/30/19
-#### Test Case
-- Thorough documentation was added to readme to explain the two test cases.
-- To showcase the new class method, fromYaml in DJS a test case was added to accomplish showing the features added. 
-- The prior test case was moved to a new script implementation, `list_run.py` where the properties for adjusting containers are showcased.
+Most users should utilize DJS's [click](https://github.com/pallets/click) command line interface to access and use the perturbation engine and job scheduler. The CLI takes [yaml](https://yaml.org) input files that tell the perturbation engine and job scheduler what files to work on and how to work on them. See the example and docs for greater detail.
 
-#### DJS:
-- A new class method `fromYaml` was implemented in the Scheduler. This allows for a user to interface with DJS in a new way. Find the details of these changes [here](./pocono_test_case/README.md#fromyaml-test-case). 
-- DJS docker containers can now more easily be controlled with the class properties: image_tag, max_jobs, max_cpus, and mpi_np
+## Installation
 
-#### Docker
-- Docker images saw a major change in this commit. Prior images for NWM were 473 mb but have now been reduced to 274 mb. Containers internal structure was also updated to be more general and match naming conventions found across the whole platform. Previous the model was compiled in a directory `/nwm` in this commit this was changed to `/model`. Other naming conventions within the images were also changed, `/slave` is now `/replica`. 
- 
-### 7/9/19
-- Three six month runs of NWM 1.2 over Sipsey Wilderness, AL Domain with three differing channel width
-scalars. Please find the hydroshare resource [here](https://www.hydroshare.org/resource/bde5162056a84381a8bc56c20d86f4d7/).
+Note, if you just want to vary model parameters, you can skip to [package installation](#package-installation).
 
-### 6/28/19
-- Added completed year run of NWM v2 in the Sipsey Wilderness to
-  hydroshare. See it [here](https://www.hydroshare.org/resource/0e015316da5b429fb6652d403e6decbe/)
+### Docker
+
+Prior to the package installation, first install [Docker](https://www.docker.com/products). Windows and macOS users should install [Docker Desktop](https://www.docker.com/products/docker-desktop), Linux users should install [Docker Developer Tools](https://www.docker.com/products/developer-tools).
+
+macOS users with [homebrew](https://brew.sh) installed can install Docker as such.
+
+``` bash
+brew cask install docker
+```
+
+#### Pull the NWM/WRF-Hydro Docker Images
+
+Pull the docker images from docker hub, so DJS can use them to run models. View all available images on [Docker Hub](https://hub.docker.com/u/aaraney).
+
+``` bash
+# For NWM version 2.0
+docker pull aaraney/nwm-djs:2.0
+
+# For NWM version 1.2
+docker pull aaraney/nwm-djs:1.2
+
+# For WRF-Hydro
+docker pull aaraney/wrf-hydro:5.1.1
+docker pull aaraney/wrf-hydro:5.1.0
+docker pull aaraney/wrf-hydro:5.0.3
+```
+
+### Package Installation
+
+DJS requires Python 3.5 or higher and is available using `pip`. It's recommend to install DJS into a virtual environment or a conda environment as a best practice. Personally, I think conda is a little easier, but admittedly a little more bloated.
+
+To create a virtual environment run the following in terminal
+
+``` bash
+python3 -m venv djs-env
+
+# If on Mac or Linux
+source djs-env/bin/activate
+
+# If on Windows
+. \djs-env\Scripts\activate
+```
+
+To create an environment using conda do the following in terminal. You can [install miniconda here](https://docs.conda.io/en/latest/miniconda.html).
+
+``` bash
+conda create --name djs python=3.8
+conda activate djs
+```
+
+Install DJS using pip
+
+``` bash
+pip3 install djs
+```
+
+## Example case
+
+Files for this example [NCAR Pocono, PA test case](pocono_test_case/pocono_test_case.zip) can be downloaded and extracted for recreation purposes.
+
+In this example, a set of varied model parameter files will be created and used to run NWM version 2.0 simulations.
+
+### Create varied parameter files
+
+Let's take a look inside `pe_setup.yml` before varying the parameters. Documentation on the perturbation engine yaml setup file can be found by running `djs perturbation-engine --help` or in the docs.
+
+``` yaml
+# Perturbation Engine setup yml file
+primary/DOMAIN/Route_Link.nc:
+  - nCC:
+      scalar: '* 1.3'
+      output: 'nCC_route_link.nc'
+primary/DOMAIN/soil_properties.nc:
+  - mfsno:
+      uniform: True
+      output: 'mfsno_soil_properties.nc'
+primary/DOMAIN/Fulldom_hires.nc:
+  - OVROUGHRTFAC:
+      scalar: '- 0.2'
+      output: 'OVROUGHRTFAC_fulldom_hires.nc'
+  - multi_group:
+      output: 'RETDEPRTFAC_OVROUGHRTFAC_fulldom_hires.nc'
+      OVROUGHRTFAC:
+          norm: False
+          scalar: '- 0.3'
+      RETDEPRTFAC:
+          scalar: '- 0.05'
+```
+
+For those following along navigate to the location you extracted the `pocono_test_case.zip` using the terminal/command prompt.
+
+![cd to directory](resources/example_case_cd.gif)
+
+Create a varied parameter set is as simple as running:
+
+``` bash
+djs perturbation-engine pe_yaml.yml
+```
+
+Varied parameter files should now exist in the `pocono_test_case` directory.
+
+### Run NWM Simulations
+
+First, ensure that Docker is running. Next, let's take a peak at the Job Scheduler setup files. Documentation on the perturbation engine yaml setup file can be found by running `djs job-scheduler --help` or in the docs.
+
+``` yaml
+# Job Scheduler setup yml file
+primary: 'primary'
+alternative-files:
+  - 'nCC_route_link.nc'
+  - 'mfsno_soil_properties.nc'
+  - 'OVROUGHRTFAC_fulldom_hires.nc'
+  - 'RETDEPRTFAC_OVROUGHRTFAC_fulldom_hires.nc'
+image: 'aaraney/nwm-djs:2.0'
+max-jobs: 2
+cpus: '0-2'
+mpi-np: 2
+```
+
+To start the simulations run:
+
+``` bash
+djs job-scheduler js_setup.yml
+```
+
+![run simulations](resources/example_case_sim.gif)
+
+New directories starting with the prefix `rep-` should appear in the `pocono_test_case` directory. These directories hold each of the model simulations.
+
 
 Contributors: [Austin Raney](mailto:aaraney@crimson.ua.edu), [Iman Maghami](mailto:im3vp@virginia.edu), [Yenchia Feng](mailto:yenchia@stanford.edu)
