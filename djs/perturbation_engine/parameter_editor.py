@@ -29,7 +29,20 @@ def _check_parameter_validity(parameter_file: Union[str, xr.core.dataset.Dataset
     }
 
     if type(parameter_file) is str:
-        parameter_file = xr.open_dataset(parameter_file)
+
+        # Handle SerializationWarning xarray throws when variable has multiple fill values
+        try:
+            import warnings
+
+            # Catch all warnings and turn them into exceptions
+            with warnings.catch_warnings():
+                warnings.simplefilter('error')
+                parameter_file = xr.open_dataset(parameter_file)
+
+        except:
+                # Ignore datetime decoding
+                parameter_file = xr.open_dataset(parameter_file, decode_cf=False)
+
 
     try:
         fn_w_nwm_naming_convention = identifyDomainFile(parameter_file)
