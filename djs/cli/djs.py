@@ -72,6 +72,9 @@ def job_scheduler(setup_yaml, dry_run):
         primary: path-to-modeling-directory
         alternative-files:
             - path-to-alternative-file
+            -
+              - path-to-alternative-file_1
+              - path-to-alternative-file_2
             ...
             - path-to-alternative-file
         cpus: number-of-cpus to use
@@ -86,8 +89,9 @@ def job_scheduler(setup_yaml, dry_run):
             - 'Route_Link.nc'
             - 'Route_Link_1.nc'
             - 'Route_Link_2.nc'
-            - 'Route_Link_3.nc'
-            - 'Route_Link_4.nc'
+            -
+              - 'Route_Link_3.nc'
+              - 'Fulldom_hires.nc'
         cpus: '0-7'
         max-jobs: 3
         mpi-np: 2
