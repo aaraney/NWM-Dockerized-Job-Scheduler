@@ -123,7 +123,7 @@ def job_scheduler(setup_yaml, dry_run):
                 YYYYMMDDHH.LDASIN_DOMAIN1
 
     '''
-    scheduler = Scheduler.fromYaml(setup_yaml)
+    scheduler = Scheduler.from_yaml(setup_yaml)
 
     # If the --dry-run flag is passed, 
     # print jobs in the queue don't start jobs
@@ -132,7 +132,7 @@ def job_scheduler(setup_yaml, dry_run):
             click.echo(job)
 
     else:
-        scheduler.startJobs()
+        scheduler.start_jobs()
 
 # Perturbation engine CLI
 @main.command('perturbation-engine', short_help = 'Perturb NWM/WRF-Hyrdo parameter files')
