@@ -69,7 +69,7 @@ pip3 install djs
 
 ## Example case
 
-Files for this example [NCAR Pocono, PA test case](pocono_test_case/pocono_test_case.zip) can be downloaded and extracted for recreation purposes.
+Files for this example [NCAR Pocono, PA test case](https://github.com/aaraney/NWM-Dockerized-Job-Scheduler/blob/master/pocono_test_case/pocono_test_case.zip) can be downloaded and extracted for recreation purposes.
 
 In this example, a set of varied model parameter files will be created and used to run NWM version 2.0 simulations.
 
@@ -102,7 +102,7 @@ primary/DOMAIN/Fulldom_hires.nc:
 
 For those following along navigate to the location you extracted the `pocono_test_case.zip` using the terminal/command prompt.
 
-![cd to directory](resources/example_case_cd.gif)
+![cd to directory](https://raw.githubusercontent.com/aaraney/NWM-Dockerized-Job-Scheduler/master/resources/example_case_cd.gif)
 
 Create a varied parameter set is as simple as running:
 
@@ -120,8 +120,9 @@ First, ensure that Docker is running. Next, let's take a peak at the Job Schedul
 # Job Scheduler setup yml file
 primary: 'primary'
 alternative-files:
-  - 'nCC_route_link.nc'
-  - 'mfsno_soil_properties.nc'
+  -
+    - 'nCC_route_link.nc'
+    - 'mfsno_soil_properties.nc'
   - 'OVROUGHRTFAC_fulldom_hires.nc'
   - 'RETDEPRTFAC_OVROUGHRTFAC_fulldom_hires.nc'
 image: 'aaraney/nwm-djs:2.0'
@@ -136,9 +137,10 @@ To start the simulations run:
 djs job-scheduler js_setup.yml
 ```
 
-![run simulations](resources/example_case_sim.gif)
+![run simulations](https://raw.githubusercontent.com/aaraney/NWM-Dockerized-Job-Scheduler/master/resources/example_case_sim.gif)
+
+Notice above that `'nCC_route_link.nc'` and `'mfsno_soil_properties.nc'` are nested within a list, this tells the job scheduler to use both files within the same simulation. Whereas the other files will have their own simulations.
 
 New directories starting with the prefix `rep-` should appear in the `pocono_test_case` directory. These directories hold each of the model simulations.
 
-
-Contributors: [Austin Raney](mailto:aaraney@crimson.ua.edu), [Iman Maghami](mailto:im3vp@virginia.edu), [Yenchia Feng](mailto:yenchia@stanford.edu)
+__Contributors__: [Austin Raney](mailto:aaraney@crimson.ua.edu), [Iman Maghami](mailto:im3vp@virginia.edu), [Yenchia Feng](mailto:yenchia@stanford.edu)
