@@ -1,4 +1,5 @@
 # DJS
+[![djs pypi version](https://img.shields.io/pypi/v/djs)](https://pypi.org/project/djs/)
 
 DJS is an open-source python library for adjusting parameters and completing concurrent WRF-Hydro/National Water Model simulations. It provides tools that simplify model usage and executions that are operable across operating systems. The framework consists of two main pieces:
 
@@ -64,7 +65,7 @@ conda activate djs
 Install DJS using pip
 
 ``` bash
-pip3 install djs
+pip install --upgrade djs
 ```
 
 ## Example case
