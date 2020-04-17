@@ -10,7 +10,7 @@ from random import randint
 
 # Local imports
 from .job import Job
-from .domainsetup import setup_model
+from .domainsetup import _setup_model
 
 
 class Scheduler(object):
@@ -25,7 +25,7 @@ class Scheduler(object):
             self.docker_client = docker_client
         else:
             # Set to system docker if one is not provided
-            self.checkHeartBeat()
+            self._check_heart_beat()
             self.docker_client = docker.from_env()
 
 
@@ -54,7 +54,7 @@ class Scheduler(object):
         self._MPI_NP = 2
 
     @classmethod
-    def fromList(cls, primary_dir, alt_domain_list):
+    def from_list(cls, primary_dir, alt_domain_list):
         '''
         Fill jobs queue from list of file names.
 
@@ -74,7 +74,7 @@ class Scheduler(object):
             # Handle nested alternative file list items
             fn = map(scheduler._nested_path_helper, alt_domain_list)
             job = Job(replica_mnt_point, primary_dir, fn)
-            scheduler.enqueue(job)
+            scheduler._enqueue(job)
         return scheduler
 
     @classmethod
@@ -135,13 +135,11 @@ class Scheduler(object):
         for i, file in enumerate(alt_domain_list):
             replica_mnt_point = join(dirname(primary_dir), 'rep-{}-sesh-{}'.format(i, scheduler.schedule_id))
             job = Job(replica_mnt_point, primary_dir, file)
-            scheduler.enqueue(job)
+            scheduler._enqueue(job)
 
         return scheduler
 
     def __str__(self):
-        # Embarrassing implementation
-        # TODO: Make the readable
         return 'mpi-np: {}\n {}'.format(self.mpi_np, str(list(map(lambda x: print('{}\n'.format(x)), list(self._jobQ)))))
 
     @property
@@ -198,7 +196,10 @@ class Scheduler(object):
         else:
             return realpath(fn)
 
-    def checkHeartBeat(self):
+    def _check_heart_beat(self):
+        '''
+        Check if the Docker daemon is running
+        '''
         # Currently only supporting local docker client
         # However, see https://docker-py.readthedocs.io/en/stable/client.html
         # to implement a remote docker server
@@ -209,7 +210,9 @@ class Scheduler(object):
             raise ConnectionError("Please check that the Docker Daemon is installed and running.")
 
     def check_for_image(self, image_tag):
-        # Check if user has specified container pulled
+        '''
+        Check if user has specified container pulled
+        '''
         docker_image_list = self.docker_client.images.list()
         # Create flattened list of RepoTags of images pulled on docker client
         docker_repo_tag_list = reduce(operator.concat, list(map(lambda x: x.attrs['RepoTags'], docker_image_list)))
@@ -217,7 +220,7 @@ class Scheduler(object):
         # Return bool if image is pulled
         return image_tag in docker_repo_tag_list
 
-    def runJob(self, job, image_tag, cpuset):
+    def _run_job(self, job, image_tag, cpuset):
         volumes = {
             job.replica_mnt_point : {'bind': '/replica',
                      'mode': 'rw'}
@@ -227,17 +230,17 @@ class Scheduler(object):
                                                              volumes=volumes)
         return job
 
-    def enqueue(self, job):
+    def _enqueue(self, job):
         '''
         Add job to queue
         '''
         self._jobQ.append(job)
 
-    def setupJob(self, job):
+    def _setup_job(self, job):
         '''
         Create replica dir and link files for job
         '''
-        setup_model(job)
+        _setup_model(job)
 
     def dump_all_jobs(self):
         '''
@@ -247,13 +250,13 @@ class Scheduler(object):
         '''
         while len(self._jobQ) != 0:
             job = self._jobQ.pop()
-            self.setupJob(job)
+            self._setup_job(job)
             print('''Dumped job information:
                 {}'''.format(str(job).replace('\n', '\n\t')))
 
         self.docker_client.close()
 
-    def startJobs(self):
+    def start_jobs(self):
         '''
         Begin the dispersion of jobs from the job queue until the jobs queue
         has been exhausted
@@ -270,8 +273,8 @@ class Scheduler(object):
         while len(self._jobQ) != 0:
             if len(running_containers_list) < self._MAX_JOBS:
                 job = self._jobQ.pop()
-                self.setupJob(job)
-                running_job = self.runJob(job, self.image_tag, self._MAX_CPUS)
+                self._setup_job(job)
+                running_job = self._run_job(job, self.image_tag, self._MAX_CPUS)
                 print('''Simulation started:
                 {}'''.format(str(running_job).replace('\n', '\n\t')))
             running_containers_list = self.docker_client.containers.list()

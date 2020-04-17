@@ -16,8 +16,8 @@ def from_yaml(yaml_setup_file):
         alternative-files:
             - '/path/to/alt/file'
             -
-            - '/path/to/alt/file1'
-            - '/path/to/alt/file2'
+              - '/path/to/alt/file1'
+              - '/path/to/alt/file2'
             ..
             - '/path/to/alt/file'
 
@@ -28,7 +28,7 @@ def from_yaml(yaml_setup_file):
         mpi-np: <int> (e.g., 3) default 
         '''
     from .scheduler import Scheduler
-    return Scheduler.fromYaml(yaml_setup_file)
+    return Scheduler.from_yaml(yaml_setup_file)
 
 
 def from_list(primary_dir, alt_domain_list):
@@ -44,4 +44,4 @@ def from_list(primary_dir, alt_domain_list):
     alternate files to be used.
     '''
     from .scheduler import Scheduler
-    return Scheduler.fromList(primary_dir, alt_domain_list)
+    return Scheduler.from_list(primary_dir, alt_domain_list)

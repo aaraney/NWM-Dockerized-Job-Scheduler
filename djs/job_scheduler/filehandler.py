@@ -31,12 +31,12 @@ file_type_dict = {
 
 }
 
-def identifyDomainFile(domain_file: Union[str, xr.core.dataset.Dataset]):
+def identify_domain_file(domain_file: Union[str, xr.core.dataset.Dataset]):
     '''
     Return the NWM filename convention of the input file. Accepts a filename
     as a string or an xarray dataset dataset
     e.g.
-    identifyDomainFile('Route_link123.nc) -> 'Route_link.nc'
+    identify_domain_file('Route_link123.nc) -> 'Route_link.nc'
     '''
     if type(domain_file) is str:
 

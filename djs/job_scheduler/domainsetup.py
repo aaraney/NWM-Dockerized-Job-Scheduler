@@ -5,7 +5,7 @@ from os.path import join, realpath, basename, dirname, isdir
 from glob import glob
 
 # Local import
-from .filehandler import identifyDomainFile
+from .filehandler import identify_domain_file
 
 
 def _clean_up(job):
@@ -72,19 +72,19 @@ def _populate_domain_files(primary_dir, alt_domain_list):
     # See filehandler.py for a better understanding
     primary_domain_dict = {}
     for src in primary_domain_files:
-        common_name = identifyDomainFile(src)
+        common_name = identify_domain_file(src)
         primary_domain_dict[common_name] = src
 
     # Replace source src location of default domain files
     # with the location of alternative domain files
     for alt_src in alt_domain_list:
-        common_name = identifyDomainFile(alt_src)
+        common_name = identify_domain_file(alt_src)
         primary_domain_dict[common_name] = alt_src
 
     return primary_domain_dict
 
 
-def setup_model(job):
+def _setup_model(job):
     '''
     Create symbolic link of primary DOMAIN, TBL,
     wrf_hydro.exe files to slave_dir. Alt_domain
