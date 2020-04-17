@@ -6,11 +6,10 @@ import operator
 from typing import Dict, List, Tuple, Union
 from os.path import basename
 
-from djs.job_scheduler.filehandler import identifyDomainFile
+from djs.job_scheduler.filehandler import identify_domain_file
 
 def _check_parameter_validity(parameter_file: Union[str, xr.core.dataset.Dataset]):
     '''
-
     Load a netcdf or check that an existing dataset is a valid file for usage
     by the perturbation engine. Return dataframe of representation of the
     file if it is a valid file and the parameters capible of being varried.
@@ -43,9 +42,8 @@ def _check_parameter_validity(parameter_file: Union[str, xr.core.dataset.Dataset
                 # Ignore datetime decoding
                 parameter_file = xr.open_dataset(parameter_file, decode_cf=False)
 
-
     try:
-        fn_w_nwm_naming_convention = identifyDomainFile(parameter_file)
+        fn_w_nwm_naming_convention = identify_domain_file(parameter_file)
         valid_params = valid_files_to_edit[fn_w_nwm_naming_convention]
 
         return( (parameter_file, valid_params) )

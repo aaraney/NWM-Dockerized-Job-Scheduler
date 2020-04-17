@@ -5,10 +5,10 @@ from os.path import join, realpath, basename, dirname, isdir
 from glob import glob
 
 # Local import
-from .filehandler import identifyDomainFile
+from .filehandler import identify_domain_file
 
 
-def cleanUp(job):
+def _clean_up(job):
     '''
     Remove forcings and restarts
     Aggregate files to better location
@@ -16,7 +16,7 @@ def cleanUp(job):
     # TODO: Implement this method
     pass
 
-def __link(dest_dir, *src_files):
+def _link(dest_dir, *src_files):
     '''
     src_files accepted as n args or dict with
     key = common file name (e.g. Fulldom_hires.nc)
@@ -40,19 +40,19 @@ def __link(dest_dir, *src_files):
     else:
         # Link full path of src file to dest_dir using
         # the name of src file
-        def _link(src):
+        def __link(src):
             link(realpath(src), join(dest_dir, basename(src)))
         try:
             if src_files:
                 for item in src_files:
-                    _link(item)
+                    __link(item)
         except FileExistsError:
             # handle existing links
             for item in src_files:
                 remove(join(dest_dir, basename(item)))
-            __link(dest_dir, *src_files)
+            _link(dest_dir, *src_files)
 
-def populateDomainFiles(primary_dir, alt_domain_list):
+def _populate_domain_files(primary_dir, alt_domain_list):
     '''
     :returns dict of domain files to be linked to
     replica directory. Accounts for differences in files names
@@ -72,19 +72,19 @@ def populateDomainFiles(primary_dir, alt_domain_list):
     # See filehandler.py for a better understanding
     primary_domain_dict = {}
     for src in primary_domain_files:
-        common_name = identifyDomainFile(src)
+        common_name = identify_domain_file(src)
         primary_domain_dict[common_name] = src
 
     # Replace source src location of default domain files
     # with the location of alternative domain files
     for alt_src in alt_domain_list:
-        common_name = identifyDomainFile(alt_src)
+        common_name = identify_domain_file(alt_src)
         primary_domain_dict[common_name] = alt_src
 
     return primary_domain_dict
 
 
-def setupModel(job):
+def _setup_model(job):
     '''
     Create symbolic link of primary DOMAIN, TBL,
     wrf_hydro.exe files to slave_dir. Alt_domain
@@ -110,12 +110,12 @@ def setupModel(job):
     makedirs(join(replica_dir, 'RESTART'), exist_ok=True)
 
     # Link DOMAIN and FORCING files
-    domain_file_dict = populateDomainFiles(primary_dir, alt_domain_list)
+    domain_file_dict = _populate_domain_files(primary_dir, alt_domain_list)
 
-    __link(join(replica_dir, 'DOMAIN'), domain_file_dict)
-    __link(join(replica_dir, 'FORCING'), *glob(join(primary_dir, 'FORCING/*')))
-    __link(join(replica_dir, 'RESTART'), *glob(join(primary_dir, 'RESTART/*')))
+    _link(join(replica_dir, 'DOMAIN'), domain_file_dict)
+    _link(join(replica_dir, 'FORCING'), *glob(join(primary_dir, 'FORCING/*')))
+    _link(join(replica_dir, 'RESTART'), *glob(join(primary_dir, 'RESTART/*')))
 
     # link namelist files
-    __link(join(replica_dir), join(primary_dir, 'hydro.namelist'))
-    __link(join(replica_dir), join(primary_dir, 'namelist.hrldas'))
+    _link(join(replica_dir), join(primary_dir, 'hydro.namelist'))
+    _link(join(replica_dir), join(primary_dir, 'namelist.hrldas'))

@@ -72,6 +72,9 @@ def job_scheduler(setup_yaml, dry_run):
         primary: path-to-modeling-directory
         alternative-files:
             - path-to-alternative-file
+            -
+              - path-to-alternative-file_1
+              - path-to-alternative-file_2
             ...
             - path-to-alternative-file
         cpus: number-of-cpus to use
@@ -86,8 +89,9 @@ def job_scheduler(setup_yaml, dry_run):
             - 'Route_Link.nc'
             - 'Route_Link_1.nc'
             - 'Route_Link_2.nc'
-            - 'Route_Link_3.nc'
-            - 'Route_Link_4.nc'
+            -
+              - 'Route_Link_3.nc'
+              - 'Fulldom_hires.nc'
         cpus: '0-7'
         max-jobs: 3
         mpi-np: 2
@@ -119,7 +123,7 @@ def job_scheduler(setup_yaml, dry_run):
                 YYYYMMDDHH.LDASIN_DOMAIN1
 
     '''
-    scheduler = Scheduler.fromYaml(setup_yaml)
+    scheduler = Scheduler.from_yaml(setup_yaml)
 
     # If the --dry-run flag is passed, 
     # print jobs in the queue don't start jobs
@@ -128,7 +132,7 @@ def job_scheduler(setup_yaml, dry_run):
             click.echo(job)
 
     else:
-        scheduler.startJobs()
+        scheduler.start_jobs()
 
 # Perturbation engine CLI
 @main.command('perturbation-engine', short_help = 'Perturb NWM/WRF-Hyrdo parameter files')
