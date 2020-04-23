@@ -108,7 +108,7 @@ For those following along navigate to the location you extracted the `pocono_tes
 Create a varied parameter set is as simple as running:
 
 ``` bash
-djs perturbation-engine pe_yaml.yml
+djs perturbation-engine pe_setup.yml
 ```
 
 Varied parameter files should now exist in the `pocono_test_case` directory.
