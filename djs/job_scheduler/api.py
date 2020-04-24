@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
+
 def from_yaml(yaml_setup_file):
-    '''
+    """
     Fills job queue from a provided yaml file
 
     Note: Absolute and relative paths are accepted
@@ -25,14 +26,15 @@ def from_yaml(yaml_setup_file):
         image: 'docker/image' default aaraney/nwm-djs:2.0
         max-jobs: <int> (e.g., 3) default 2
         cpus: <str> (e.g., '0-4') default '0-1'
-        mpi-np: <int> (e.g., 3) default 
-        '''
+        mpi-np: <int> (e.g., 3) default
+        """
     from .scheduler import Scheduler
+
     return Scheduler.from_yaml(yaml_setup_file)
 
 
 def from_list(primary_dir, alt_domain_list):
-    '''
+    """
     Fill jobs queue from list of file names.
 
     The alt domain list files will attempt to have their full path mapped
@@ -42,6 +44,7 @@ def from_list(primary_dir, alt_domain_list):
     alt_domain_list is accepted as nested lists, this will link the files
     in the nested list to the same simulation, thus allowing for numerous
     alternate files to be used.
-    '''
+    """
     from .scheduler import Scheduler
+
     return Scheduler.from_list(primary_dir, alt_domain_list)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import click
-
 # Local imports
 from djs.job_scheduler.scheduler import Scheduler
 from djs.perturbation_engine.from_yaml import perturb_from_yaml
@@ -9,13 +8,13 @@ from djs.perturbation_engine.from_yaml import perturb_from_yaml
 
 # Adapted from https://click.palletsprojects.com/en/7.x/advanced/
 class AliasedGroup(click.Group):
-    '''
+    """
     Allow commands to be accessed using aliases for ease on the phalanges.
-    '''
+    """
 
     __alias_dict = {
-        'js': 'job-scheduler',
-        'pe': 'perturbation-engine',
+        "js": "job-scheduler",
+        "pe": "perturbation-engine",
     }
 
     def get_command(self, ctx, cmd_name):
@@ -26,13 +25,14 @@ class AliasedGroup(click.Group):
             alias_cmd = self.__alias_dict[cmd_name]
         except KeyError:
             return None
-        
+
         return click.Group.get_command(self, ctx, alias_cmd)
+
 
 # djs CLI, top most click.group()
 @click.group(cls=AliasedGroup)
 def main():
-    '''
+    """
     Is a tool for easily varying NWM/WRF-Hydro model parameters and
     running concurrent simulations inside of Docker contianers. Both the
     job-scheduler and perturbation-engine use yaml files to complete
@@ -50,23 +50,29 @@ def main():
         ability to scale parameters using mathmatical operators or randomly
         sample values and apply them to the paramter using a statistical
         distribution.
-        
-    '''
+
+    """
     pass
 
+
 # Job Schdeuler CLI
-@main.command('job-scheduler', short_help = 'Run concurrent NWM/WRF-Hydro simulations')
-@click.argument('setup_yaml', type=click.Path(exists=True), nargs=1)
-@click.option('--dry-run', '-d', required=False, is_flag=True, 
-              help='Do not start jobs, instead print jobs queue')
+@main.command("job-scheduler", short_help="Run concurrent NWM/WRF-Hydro simulations")
+@click.argument("setup_yaml", type=click.Path(exists=True), nargs=1)
+@click.option(
+    "--dry-run",
+    "-d",
+    required=False,
+    is_flag=True,
+    help="Do not start jobs, instead print jobs queue",
+)
 def job_scheduler(setup_yaml, dry_run):
-    '''
+    """
     Run concurrent NWM/WRF-Hydro simulations scenarios using Docker. It takes
     a directory of model related files and a list of alternative model domain
     parameter files, then the Job Scheduler maps the alternative model files
     to individual NWM/WRF-Hydro simulations. This setup information is
     contained in a yaml file as depicted below.
-    
+
     \b
     Yaml setup file structure:
         primary: path-to-modeling-directory
@@ -81,7 +87,7 @@ def job_scheduler(setup_yaml, dry_run):
         max-jobs: maximum running Docker containers
         mpi-np: number of mpi jobs per container
         image: docker image to use for each container
-    
+
     \b
     Example Yaml setup file:
         primary: 'primary'
@@ -122,10 +128,10 @@ def job_scheduler(setup_yaml, dry_run):
                 # E.g., if you are using NLDAS hourly forcings
                 YYYYMMDDHH.LDASIN_DOMAIN1
 
-    '''
+    """
     scheduler = Scheduler.from_yaml(setup_yaml)
 
-    # If the --dry-run flag is passed, 
+    # If the --dry-run flag is passed,
     # print jobs in the queue don't start jobs
     if dry_run:
         for job in scheduler.jobQ:
@@ -134,11 +140,12 @@ def job_scheduler(setup_yaml, dry_run):
     else:
         scheduler.start_jobs()
 
+
 # Perturbation engine CLI
-@main.command('perturbation-engine', short_help = 'Perturb NWM/WRF-Hyrdo parameter files')
-@click.argument('setup_yaml', type=click.Path(exists=True), nargs=1)
+@main.command("perturbation-engine", short_help="Perturb NWM/WRF-Hyrdo parameter files")
+@click.argument("setup_yaml", type=click.Path(exists=True), nargs=1)
 def perturbation_engine(setup_yaml):
-    '''
+    """
     Apply scalar or randomly sampled values to WRF-Hydro/NWM model parameters
     using in-place operator (i.e. +=, *=) operand pairs or fitted statistical
     distribution random sampling using a setup yaml file.
@@ -191,7 +198,7 @@ def perturbation_engine(setup_yaml):
             - LKSATFAC:
                 output: ubiquitous_uniform_Fulldom_hires.nc
                 uniform: True
-    '''
+    """
     perturb_from_yaml(setup_yaml)
 
 

@@ -69,4 +69,3 @@ ylabel('m$^3$/s','Interpreter','latex','FontSize',fontsize)
 xlabel('hr','Interpreter','latex','FontSize',fontsize)
 xlim([1 24])
 saveas(gcf,'/Users/YenChia/PBenJ/figures/outlet_comparison.png')
-

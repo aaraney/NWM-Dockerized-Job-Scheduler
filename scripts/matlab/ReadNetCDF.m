@@ -27,5 +27,3 @@ for n=1:length(day)
     feature_id(:,n) = ncread(file,'feature_id');
     
 end
-    
-    

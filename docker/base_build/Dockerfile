@@ -74,4 +74,3 @@ RUN apk update --no-cache \
 WORKDIR /
 
 ENTRYPOINT ["sh"]
-

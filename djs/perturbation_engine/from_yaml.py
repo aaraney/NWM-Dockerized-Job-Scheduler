@@ -1,16 +1,20 @@
 #!/usr/bin/env python
 
-import yaml
-import xarray as xr
-from os import access, W_OK
-from os.path import basename, dirname, splitext
-from typing import Dict, List, Set, Tuple, Union
+from os import W_OK, access
+from pathlib import Path
+from typing import Dict, List, Tuple, Union
 
+# import xarray as xr
+import yaml
 # Local imports
-from djs.perturbation_engine.parameter_editor import _check_parameter_validity, perturb_parameters
+from djs.perturbation_engine.parameter_editor import (
+    _check_parameter_validity,
+    perturb_parameters,
+)
+
 
 def perturb_from_yaml(setup_file):
-    '''
+    """
     Apply scalar or randomly sampled values to WRF-Hydro/NWM model parameters
     using in-place operator (i.e. +=, *=) operand pairs or fitted statistical
     distribution random sampling using yaml file inputs.
@@ -47,7 +51,7 @@ def perturb_from_yaml(setup_file):
     estimated using an MLE using the values from the input df. The ubiquitous
     apply bool controls sampling, True results in ubiquitous random sampling,
     False results in a single random sample applied equally to the parameter.
-    
+
     Example setup file:
 
         /home/example/NWM-Docker-Ensemble-Framework/pocono_test_case/Route_Link.nc:
@@ -67,10 +71,10 @@ def perturb_from_yaml(setup_file):
             - LKSATFAC:
                 output: ubiquitous_uniform_Fulldom_hires.nc
                 uniform: True
-    '''
+    """
 
-    # Read in setup yaml file 
-    with open(setup_file, 'r') as setup:
+    # Read in setup yaml file
+    with open(setup_file, "r") as setup:
         setup_file = yaml.safe_load(setup)
 
     # Outter most loop that steps through filename keys
@@ -95,21 +99,23 @@ def perturb_from_yaml(setup_file):
             # If the key is a valid parameter
             if current_parameter in valid_parameters:
 
-                # Try to get output file 
+                # Try to get output file
                 try:
-                    output_fn = op_dict.pop('output')
+                    output_fn = op_dict.pop("output")
 
                 # output_fn not provided
                 except KeyError:
                     # Original input file without the file extention
-                    output_fn = splitext(filenames)[0]
-                    output_fn = '{}_djs_{}.nc'.format(output_fn, current_parameter)
+                    output_fn = Path(filenames).stem
+                    output_fn = "{}_djs_{}.nc".format(output_fn, current_parameter)
 
                 # Check for scalar, if not scalar should be dist
                 operator_operand_pair_list = _value_parser(op_dict)
-                parameter_df = perturb_parameters(parameter_df, {current_parameter: operator_operand_pair_list})
+                parameter_df = perturb_parameters(
+                    parameter_df, {current_parameter: operator_operand_pair_list}
+                )
 
-                # Save perturbed parameter file 
+                # Save perturbed parameter file
                 _save_output(parameter_df, output_fn)
 
             # Group case
@@ -118,75 +124,92 @@ def perturb_from_yaml(setup_file):
                 group_name = current_parameter
                 group_dict = op_dict
 
-                # Try to get output file 
+                # Try to get output file
                 try:
-                    output_fn = group_dict.pop('output')
+                    output_fn = group_dict.pop("output")
                 # output_fn not provided
                 except KeyError:
                     # Original input file without the file extention
-                    output_fn = splitext(filenames)[0]
-                    output_fn = '{}_djs_{}.nc'.format(output_fn, group_name)
+                    output_fn = Path(filenames).stem
+                    output_fn = "{}_djs_{}.nc".format(output_fn, group_name)
 
                 # Check for scalar, if not scalar should be dist
-                group_operator_operand_pair_list = {parameter: _value_parser(method) for (parameter, method) in group_dict.items()}
+                group_operator_operand_pair_list = {
+                    parameter: _value_parser(method)
+                    for (parameter, method) in group_dict.items()
+                }
                 # operator_operand_pair_list = _value_parser(group_dict)
-                parameter_df = perturb_parameters(parameter_df, group_operator_operand_pair_list)
+                parameter_df = perturb_parameters(
+                    parameter_df, group_operator_operand_pair_list
+                )
 
-                # Save perturbed parameter file 
+                # Save perturbed parameter file
                 _save_output(parameter_df, output_fn)
 
+
 def _save_output(parameter_df, output_fn, index=0):
-    '''
+    """
     Save netcdf file, avoid collitions by incrimenting 1 to the filename.
-    '''
+    """
+    output_fn = Path(output_fn)
     try:
-    # Save output perturbed parameter file
+        # Save output perturbed parameter file
         parameter_df.to_netcdf(output_fn)
 
     except PermissionError:
-        output_fn_dirname = dirname(output_fn)
+        output_fn_dirname = output_fn.parent
 
         # Check for write access to dir
         if access(output_fn_dirname, W_OK):
 
-            output_fn = splitext(output_fn)[0]
-            _save_output(parameter_df, '{}{}.nc'.format(output_fn, index+1), index = index+1)
+            output_fn = Path(output_fn).stem
+            _save_output(
+                parameter_df, "{}{}.nc".format(output_fn, index + 1), index=index + 1
+            )
         else:
-            raise PermissionError('Check the directory permissions for the location you are trying to save')
+            raise PermissionError(
+                "Check the directory permissions for the location you are trying to save"
+            )
 
-def _value_parser(op_dict: Dict[str, Union[bool, str]]) -> List[Tuple[Union[bool, str, int, float]]]:
-    '''
+
+def _value_parser(
+    op_dict: Dict[str, Union[bool, str]]
+) -> List[Tuple[Union[bool, str, int, float]]]:
+    """
     Map a dictionary of scalar/dist methods to a list of tuples
 
     Ex:
             _value_parser({'scalar': '+ 3'}) -> [('+', 3.0)]
             _value_parser({'scalar': '+ 3 % 5'}) -> [('+', 3.0), ('%', 5.0)]
             _value_parser({'norm': False, 'scalar': '% 5'}) -> [('norm', False), ('%', 5.0)]
-    '''
+    """
     operator_operand_pair_list = []
     for (k, v) in op_dict.items():
-        if k == 'scalar':
+        if k == "scalar":
             operator_operand_pair_list += _scalar_value_parser(v)
         else:
             operator_operand_pair_list += [(k, v)]
-    
+
     return operator_operand_pair_list
 
+
 def _scalar_value_parser(op_operand: str) -> Tuple[Union[str, int, float]]:
-    '''
+    """
     Map string of operator operand pairs to a list of tuples.
 
     Ex:
         _scalar_value_parser('+ 3') -> [('+', 3.0)]
         _scalar_value_parser('+ 3 % 5') -> [('+', 3.0), ('%', 5.0)]
-    '''
+    """
     # Transform to list and replace multiple spaces with a single space
     op_operand = op_operand.split()
 
     op_operand_length = len(op_operand)
 
-    if ( op_operand_length % 2 ) == 1:
-        raise ValueError(f'Scalar operations {op_operand} passed were not the correct format. i.e. "* 0.3" or "+ 3 - 3 + 6')
+    if (op_operand_length % 2) == 1:
+        raise ValueError(
+            f'Scalar operations {op_operand} passed were not the correct format. i.e. "* 0.3" or "+ 3 - 3 + 6'
+        )
 
     ops = op_operand[::2]
     args = list(map(float, op_operand[1::2]))
