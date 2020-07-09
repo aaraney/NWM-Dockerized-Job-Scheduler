@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 from os.path import realpath
+from pathlib import Path
+from shutil import rmtree
 
 
 class Job(object):
@@ -30,3 +32,14 @@ class Job(object):
     @container_id.setter
     def container_id(self, id):
         self._container_id = id
+
+    def clean(self):
+        # Ensure we have path to full replica path
+        _full_replica_path = Path(self.replica_mnt_point).resolve()
+
+        # Check that directory exists and is a directory
+        if _full_replica_path.exists() and _full_replica_path.is_dir():
+            rmtree(_full_replica_path)
+        else:
+            # TODO: log warning here
+            raise FileNotFoundError("Cannot remove job directory because directory doesnt not exist.")
