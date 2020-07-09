@@ -225,9 +225,17 @@ class Scheduler(object):
             job.replica_mnt_point : {'bind': '/replica',
                      'mode': 'rw'}
         }
-        job.container_id = self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True,
-                                                             entrypoint='run.sh {}'.format(self.mpi_np), remove=True,
-                                                             volumes=volumes)
+        try:
+            job.container_id = self.docker_client.containers.run(image_tag, cpuset_cpus=cpuset, detach=True,
+                                                                entrypoint='run.sh {}'.format(self.mpi_np), remove=True,
+                                                                volumes=volumes)
+        except docker.errors.APIError:
+            job.clean()
+            raise docker.errors.APIError(
+                    "Removing replica directory.\n"
+                    "Verify that the docker deamon can mount volumes where the primary directory is stored."
+                    )
+
         return job
 
     def _enqueue(self, job):
