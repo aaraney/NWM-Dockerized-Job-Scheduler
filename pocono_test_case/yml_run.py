@@ -1,7 +1,7 @@
-from os.path import realpath
+from pathlib import Path
 import sys
-sys.path.append('../framework/JobScheduler')
-from scheduler import *
 
-schedule = Scheduler.fromYaml('djs_setup.yml')
+import djs
+
+schedule = djs.from_yaml('djs_setup.yml')
 schedule.startJobs()
