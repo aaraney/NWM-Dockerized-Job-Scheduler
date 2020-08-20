@@ -18,7 +18,7 @@ def full_path_helper(file: str) -> Path:
 # Map full file system path name to altered domain files
 altered_domain_files = [full_path_helper(file) for file in altered_domain_files]
 
-schedule = Scheduler.fromList(primary_path, altered_domain_files)
+schedule = djs.from_list(primary_path, altered_domain_files)
 schedule.max_jobs = 2
 schedule.mpi_np = 2
 schedule.max_cpus = '0-2'
