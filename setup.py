@@ -17,7 +17,7 @@ with open(join(root_dir, 'README.md'), mode='r') as f:
 setup(
     # Package version and information
     name='djs',
-    version='0.0.3',
+    version='1.0.0',
     packages=find_packages(exclude=['*test*']),
     url='https://github.com/aaraney/NWM-Dockerized-Job-Scheduler',
 
