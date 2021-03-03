@@ -21,7 +21,7 @@ def _check_parameter_validity(parameter_file: Union[str, xr.core.dataset.Dataset
     # with valid paramters to vary as their values
     valid_files_to_edit = {
     'Route_link.nc': {'ChSlp', 'n', 'nCC', 'TopWdth', 'TopWdthCC', 'BtmWdth'},
-    'GWBUCKPARM.nc' : {'Expon', 'Zinit', 'Zmax'},
+    'GWBUCKPARM.nc' : {'Coeff', 'Expon', 'Zinit', 'Zmax'},
     'LAKEPARM.nc' : {'OrificeA', 'OrificeC', 'OrificeE', 'WeirC', 'WeirE', 'WeirL'},
     'soil_properties.nc': {'mfsno'},
     'Fulldom_hires.nc' : {'LKSATFAC', 'OVROUGHRTFAC', 'RETDEPRTFAC'}
