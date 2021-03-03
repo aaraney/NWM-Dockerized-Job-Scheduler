@@ -146,7 +146,7 @@ def perturbation_engine(setup_yaml):
     \b
     Supported WRF-Hydro/NWM parameters:
         Route_link.nc: BtmWdth, ChSlp, n, nCC, TopWdth, TopWdthCC, BtmWdth
-        GWBUCKPARM.nc : Expon, Zinit, Zmax
+        GWBUCKPARM.nc : Coeff, Expon, Zinit, Zmax
         LAKEPARM.nc : OrificeA, OrificeC, OrificeE, WeirC, WeirE, WeirL
         soil_properties.nc: mfsno
         Fulldom_hires.nc : LKSATFAC, OVROUGHRTFAC, RETDEPRTFAC
