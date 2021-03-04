@@ -1,0 +1,31 @@
+language: python
+python:
+  - 3.6
+  - 3.7
+  - 3.8
+
+services:
+  - docker
+
+before_install:
+    - docker pull aaraney/nwm-djs:2.0
+
+install:
+    - pip3 install -e .
+
+script:
+    - |-
+        cd pocono_test_case &&
+        unzip pocono_test_case &&
+        cd pocono_test_case
+    - python3 -m djs perturbation-engine pe_setup.yml
+    - sed -i 's|max-jobs.*|max-jobs:to_space1|; s|to_space| |' js_setup.yml
+    - sed -i 's|cpus.*|cpus:to_space"0-1"|; s|to_space| |' js_setup.yml
+    - cat js_setup.yml
+    - python3 -m djs job-scheduler js_setup.yml 
+    - REP=$(find "$(pwd)" -name "rep-0*")
+    - docker run -it --rm -v "$REP":/replica --entrypoint "run.sh" aaraney/nwm-djs:2.0
+    - ls rep*
+    - |-
+        OUT_LENGTH=$(find . -name "*.CHRTOUT_DOMAIN1" | wc -l | sed -E 's|^ *||');
+        [[ $OUT_LENGTH -eq 12 ]]
